@@ -1,0 +1,150 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+	<artifactId>samlredirector</artifactId>
+	<packaging>pom</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>SAML Redirector</name>
+	<url>http://www.harbulot.com/</url>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<modules>
+		<module>misc</module>
+		<module>idp-common</module>
+		<module>idp-restlet</module>
+		<module>idp-servlet</module>
+		<module>idp-servlet-war</module>
+		<module>sp-common</module>
+		<module>sp-servlet</module>
+	</modules>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<configuration>
+					<links>
+						<link>http://java.sun.com/javase/6/docs/api/</link>
+						<link>http://www.restlet.org/documentation/1.1/api/</link>
+						<link>http://www.openrdf.org/doc/sesame2/2.2.4/apidocs/</link>
+					</links>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-misc</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-idp-common</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-idp-restlet</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-idp-servlet</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-sp-common</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+			<dependency>
+				<groupId>uk.ac.manchester.rcs.bruno.samlredirector</groupId>
+				<artifactId>samlredirector-sp-servlet</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.restlet</groupId>
+				<artifactId>org.restlet</artifactId>
+				<version>1.1.3</version>
+			</dependency>
+			<dependency>
+				<groupId>com.noelios.restlet</groupId>
+				<artifactId>com.noelios.restlet</artifactId>
+				<version>1.1.3</version>
+			</dependency>
+
+			<dependency>
+				<groupId>net.java.dev.sommer</groupId>
+				<artifactId>foafssl-verifier</artifactId>
+				<version>1.0-SNAPSHOT</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.opensaml</groupId>
+				<artifactId>opensaml</artifactId>
+				<version>2.2.3</version>
+			</dependency>
+			<dependency>
+				<groupId>org.opensaml</groupId>
+				<artifactId>xmltooling</artifactId>
+				<version>1.2.0</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.noelios.restlet</groupId>
+				<artifactId>com.noelios.restlet.ext.net</artifactId>
+				<version>1.1.3</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-simple</artifactId>
+				<version>1.5.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>1.5.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>jcl-over-slf4j</artifactId>
+				<version>1.5.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>log4j-over-slf4j</artifactId>
+				<version>1.5.5</version>
+			</dependency>
+
+
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.4</version>
+			</dependency>
+			<dependency>
+				<groupId>bouncycastle</groupId>
+				<artifactId>bcprov-jdk16</artifactId>
+				<version>140</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+</project>
