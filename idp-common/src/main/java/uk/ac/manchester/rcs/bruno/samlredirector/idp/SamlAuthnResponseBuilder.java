@@ -46,6 +46,8 @@ import org.opensaml.saml2.core.Conditions;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.Status;
+import org.opensaml.saml2.core.StatusCode;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.ConfigurationException;
@@ -93,6 +95,8 @@ public class SamlAuthnResponseBuilder {
 	SAMLObjectBuilder<Conditions> conditionsBuilder;
 	SAMLObjectBuilder<AudienceRestriction> audienceRestrictionBuilder;
 	SAMLObjectBuilder<Audience> audienceBuilder;
+	SAMLObjectBuilder<Status> statusBuilder;
+	SAMLObjectBuilder<StatusCode> statusCodeBuilder;
 	XMLObjectBuilder<Signature> signatureBuilder;
 	XMLObjectBuilder<KeyName> keynameBuilder;
 
@@ -138,6 +142,12 @@ public class SamlAuthnResponseBuilder {
 
 		audienceBuilder = (SAMLObjectBuilder<Audience>) xmlObjectBuilderFactory
 				.getBuilder(Audience.DEFAULT_ELEMENT_NAME);
+
+		statusBuilder = (SAMLObjectBuilder<Status>) xmlObjectBuilderFactory
+				.getBuilder(Status.DEFAULT_ELEMENT_NAME);
+
+		statusCodeBuilder = (SAMLObjectBuilder<StatusCode>) xmlObjectBuilderFactory
+				.getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
 
 		signatureBuilder = (XMLObjectBuilder<Signature>) xmlObjectBuilderFactory
 				.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
@@ -203,6 +213,12 @@ public class SamlAuthnResponseBuilder {
 				.buildObject();
 		response.getAssertions().add(assertion);
 
+		StatusCode statusCode = statusCodeBuilder.buildObject();
+		statusCode.setValue(StatusCode.SUCCESS_URI);
+		Status status = statusBuilder.buildObject();
+		status.setStatusCode(statusCode);
+		response.setStatus(status);
+
 		if (signingCredential != null) {
 			try {
 				Signature signature = signatureBuilder
@@ -219,9 +235,10 @@ public class SamlAuthnResponseBuilder {
 
 				signature.setSigningCredential(signingCredential);
 				assertion.setSignature(signature);
+				assertion.setID("1");
 
-				Configuration.getMarshallerFactory().getMarshaller(assertion)
-						.marshall(assertion);
+				Configuration.getMarshallerFactory().getMarshaller(response)
+						.marshall(response);
 				Signer.signObject(signature);
 			} catch (SecurityException e) {
 				throw new RuntimeException(e);

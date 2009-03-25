@@ -57,6 +57,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLObject;
 import org.opensaml.common.binding.BasicSAMLMessageContext;
 import org.opensaml.common.binding.SAMLMessageContext;
@@ -68,6 +69,9 @@ import org.opensaml.ws.message.decoder.MessageDecodingException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
 import org.opensaml.ws.transport.http.HttpServletResponseAdapter;
+import org.opensaml.xml.Configuration;
+import org.opensaml.xml.ConfigurationException;
+import org.opensaml.xml.XMLObjectBuilderFactory;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
 import org.opensaml.xml.security.credential.Credential;
@@ -83,6 +87,19 @@ import net.java.dev.sommer.foafssl.verifier.FoafSslVerifier;
  */
 @SuppressWarnings("serial")
 public class IdpServlet extends HttpServlet {
+	static {
+		XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration
+				.getBuilderFactory();
+		if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
+			try {
+				DefaultBootstrap.bootstrap();
+			} catch (ConfigurationException e) {
+				throw new RuntimeException(e);
+			}
+			xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+		}
+	}
+
 	public final static String KEYSTORE_JNDI_INITPARAM = "keystore";
 	public final static String DEFAULT_KEYSTORE_JNDI_INITPARAM = "keystore/signingKeyStore";
 	public final static String KEYSTORE_PATH_INITPARAM = "keystorePath";
@@ -225,6 +242,12 @@ public class IdpServlet extends HttpServlet {
 		}
 
 		if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
+			String samlRequestParam = request.getParameter("SAMLRequest");
+			if ((samlRequestParam == null) || (samlRequestParam.length() <= 0)) {
+				response.getWriter().print(
+						verifiedWebIDs.iterator().next().toASCIIString());
+				return;
+			}
 			/*
 			 * Reads the SAML request and generates the SAML response.
 			 */

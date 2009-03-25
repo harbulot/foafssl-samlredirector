@@ -383,14 +383,6 @@ public class IdpServletTest {
 		System.out.println();
 
 		/*
-		 * Marshal the assertion (necessary, otherwise the verification will
-		 * fail).
-		 */
-		samlAssertion.detach();
-		marshaller = marshallerFactory.getMarshaller(samlAssertion);
-		marshaller.marshall(samlAssertion);
-
-		/*
 		 * Carry on testing the assertion.
 		 */
 		assertNotNull(samlAssertion.getSubject());

@@ -62,10 +62,6 @@ import org.opensaml.ws.message.decoder.MessageDecodingException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
 import org.opensaml.ws.transport.http.HttpServletResponseAdapter;
-import org.opensaml.xml.Configuration;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.io.MarshallerFactory;
-import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.BasicCredential;
 import org.opensaml.xml.signature.SignatureValidator;
@@ -166,17 +162,6 @@ public class SpServlet extends HttpServlet {
 				if (samlAssertion == null) {
 					return;
 				}
-				samlAssertion.detach();
-
-				/*
-				 * Marshal the assertion (necessary, otherwise the verification
-				 * will fail).
-				 */
-				MarshallerFactory marshallerFactory = Configuration
-						.getMarshallerFactory();
-				Marshaller marshaller = marshallerFactory
-						.getMarshaller(samlAssertion);
-				marshaller.marshall(samlAssertion);
 
 				/*
 				 * Verify the signature with the (only) known public key.
@@ -251,8 +236,6 @@ public class SpServlet extends HttpServlet {
 			} catch (MessageDecodingException e) {
 				return;
 			} catch (SecurityException e) {
-				return;
-			} catch (MarshallingException e) {
 				return;
 			} catch (ValidationException e) {
 				return;
