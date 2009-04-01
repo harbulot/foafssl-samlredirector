@@ -42,6 +42,10 @@
 		</dependency>
 		<dependency>
 			<groupId>net.java.dev.sommer</groupId>
+			<artifactId>foafssl-principals</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.java.dev.sommer</groupId>
 			<artifactId>foafssl-verifier</artifactId>
 		</dependency>
 

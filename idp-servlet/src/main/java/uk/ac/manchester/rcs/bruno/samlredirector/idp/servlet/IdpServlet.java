@@ -78,6 +78,7 @@ import org.opensaml.xml.security.credential.Credential;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
 
+import net.java.dev.sommer.foafssl.principals.FoafSslPrincipal;
 import net.java.dev.sommer.foafssl.verifier.DereferencingFoafSslVerifier;
 import net.java.dev.sommer.foafssl.verifier.FoafSslVerifier;
 
@@ -224,7 +225,7 @@ public class IdpServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		Collection<URI> verifiedWebIDs = null;
+		Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
 
 		/*
 		 * Verifies the certificate passed in the request.
@@ -245,7 +246,7 @@ public class IdpServlet extends HttpServlet {
 			String samlRequestParam = request.getParameter("SAMLRequest");
 			if ((samlRequestParam == null) || (samlRequestParam.length() <= 0)) {
 				response.getWriter().print(
-						verifiedWebIDs.iterator().next().toASCIIString());
+						verifiedWebIDs.iterator().next().getName());
 				return;
 			}
 			/*
@@ -264,7 +265,7 @@ public class IdpServlet extends HttpServlet {
 				final String consumerServiceUrl = authnRequest
 						.getAssertionConsumerServiceURL();
 
-				URI webId = verifiedWebIDs.iterator().next();
+				URI webId = verifiedWebIDs.iterator().next().getUri();
 
 				Credential signingCredential = null;
 				String issuerName = null;

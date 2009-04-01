@@ -37,6 +37,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
 
+import net.java.dev.sommer.foafssl.principals.FoafSslPrincipal;
 import net.java.dev.sommer.foafssl.verifier.DereferencingFoafSslVerifier;
 import net.java.dev.sommer.foafssl.verifier.FoafSslVerifier;
 
@@ -60,7 +61,6 @@ import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletRequestInTransportAdapter;
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletResponseOutTransportAdapter;
 
-
 /**
  * 
  * WORK IN PROGRESS, vastly unfinished / untested.
@@ -78,7 +78,7 @@ public class FoafSslAuthenticatorResource extends Resource {
 	public void init(Context context, Request request,
 			org.restlet.data.Response response) {
 		super.init(context, request, response);
-		Collection<URI> verifiedWebIDs = null;
+		Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
 
 		@SuppressWarnings("unchecked")
 		List<X509Certificate> certificates = (List<X509Certificate>) request
@@ -108,7 +108,7 @@ public class FoafSslAuthenticatorResource extends Resource {
 				final String consumerServiceUrl = authnRequest
 						.getAssertionConsumerServiceURL();
 
-				URI webId = verifiedWebIDs.iterator().next();
+				URI webId = verifiedWebIDs.iterator().next().getUri();
 
 				Credential signingCredential = (Credential) getContext()
 						.getAttributes().get(SIGNING_CREDENTIAL_ATTRIBUTE);
