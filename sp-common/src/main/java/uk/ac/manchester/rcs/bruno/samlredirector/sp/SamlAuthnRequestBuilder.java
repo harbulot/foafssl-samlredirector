@@ -50,43 +50,41 @@ import uk.ac.manchester.rcs.bruno.samlredirector.sp.SamlAuthnRequestBuilder;
  * @author Bruno Harbulot (Bruno.Harbulot@manchester.ac.uk)
  */
 public class SamlAuthnRequestBuilder {
-	public static SamlAuthnRequestBuilder getInstance() {
-		return Holder.instance;
-	}
+    public static SamlAuthnRequestBuilder getInstance() {
+        return Holder.instance;
+    }
 
-	private static class Holder {
-		static final SamlAuthnRequestBuilder instance = new SamlAuthnRequestBuilder();
-	}
+    private static class Holder {
+        static final SamlAuthnRequestBuilder instance = new SamlAuthnRequestBuilder();
+    }
 
-	SAMLObjectBuilder<AuthnRequest> authnRequestBuilder;
-	SAMLObjectBuilder<Issuer> issuerBuilder;
+    SAMLObjectBuilder<AuthnRequest> authnRequestBuilder;
+    SAMLObjectBuilder<Issuer> issuerBuilder;
 
-	@SuppressWarnings("unchecked")
-	private SamlAuthnRequestBuilder() {
-		XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration
-				.getBuilderFactory();
-		if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
-			try {
-				DefaultBootstrap.bootstrap();
-			} catch (ConfigurationException e) {
-				throw new RuntimeException(e);
-			}
-			xmlObjectBuilderFactory = Configuration.getBuilderFactory();
-		}
+    @SuppressWarnings("unchecked")
+    private SamlAuthnRequestBuilder() {
+        XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
+            try {
+                DefaultBootstrap.bootstrap();
+            } catch (ConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        }
 
-		authnRequestBuilder = (SAMLObjectBuilder<AuthnRequest>) xmlObjectBuilderFactory
-				.getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
-		issuerBuilder = (SAMLObjectBuilder<Issuer>) xmlObjectBuilderFactory
-				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
-	}
+        authnRequestBuilder = (SAMLObjectBuilder<AuthnRequest>) xmlObjectBuilderFactory
+                .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+        issuerBuilder = (SAMLObjectBuilder<Issuer>) xmlObjectBuilderFactory
+                .getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+    }
 
-	public AuthnRequest buildAuthnRequest(URI consumerServiceUri) {
-		AuthnRequest authnRequest = authnRequestBuilder.buildObject();
-		authnRequest.setAssertionConsumerServiceURL(consumerServiceUri
-				.toASCIIString());
-		Issuer issuer = issuerBuilder.buildObject();
-		issuer.setValue(consumerServiceUri.toASCIIString());
-		authnRequest.setIssuer(issuer);
-		return authnRequest;
-	}
+    public AuthnRequest buildAuthnRequest(URI consumerServiceUri) {
+        AuthnRequest authnRequest = authnRequestBuilder.buildObject();
+        authnRequest.setAssertionConsumerServiceURL(consumerServiceUri.toASCIIString());
+        Issuer issuer = issuerBuilder.buildObject();
+        issuer.setValue(consumerServiceUri.toASCIIString());
+        authnRequest.setIssuer(issuer);
+        return authnRequest;
+    }
 }

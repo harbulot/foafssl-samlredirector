@@ -88,229 +88,212 @@ import net.java.dev.sommer.foafssl.verifier.FoafSslVerifier;
  */
 @SuppressWarnings("serial")
 public class IdpServlet extends HttpServlet {
-	static {
-		XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration
-				.getBuilderFactory();
-		if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
-			try {
-				DefaultBootstrap.bootstrap();
-			} catch (ConfigurationException e) {
-				throw new RuntimeException(e);
-			}
-			xmlObjectBuilderFactory = Configuration.getBuilderFactory();
-		}
-	}
+    static {
+        XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
+            try {
+                DefaultBootstrap.bootstrap();
+            } catch (ConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        }
+    }
 
-	public final static String KEYSTORE_JNDI_INITPARAM = "keystore";
-	public final static String DEFAULT_KEYSTORE_JNDI_INITPARAM = "keystore/signingKeyStore";
-	public final static String KEYSTORE_PATH_INITPARAM = "keystorePath";
-	public final static String KEYSTORE_TYPE_INITPARAM = "keystoreType";
-	public final static String KEYSTORE_PASSWORD_INITPARAM = "keystorePassword";
-	public final static String ISSUER_NAME_INITPARAM = "issuerName";
-	public final static String KEY_NAME_INITPARAM = "keyName";
+    public final static String KEYSTORE_JNDI_INITPARAM = "keystore";
+    public final static String DEFAULT_KEYSTORE_JNDI_INITPARAM = "keystore/signingKeyStore";
+    public final static String KEYSTORE_PATH_INITPARAM = "keystorePath";
+    public final static String KEYSTORE_TYPE_INITPARAM = "keystoreType";
+    public final static String KEYSTORE_PASSWORD_INITPARAM = "keystorePassword";
+    public final static String ISSUER_NAME_INITPARAM = "issuerName";
+    public final static String KEY_NAME_INITPARAM = "keyName";
 
-	public final static String KEY_PASSWORD_INITPARAM = "keyPassword";
-	public final static String ALIAS_INITPARAM = "keyAlias";
+    public final static String KEY_PASSWORD_INITPARAM = "keyPassword";
+    public final static String ALIAS_INITPARAM = "keyAlias";
 
-	private static FoafSslVerifier FOAF_SSL_VERIFIER = new DereferencingFoafSslVerifier();
+    private static FoafSslVerifier FOAF_SSL_VERIFIER = new DereferencingFoafSslVerifier();
 
-	private Credential signingCredential = null;
-	private String issuerName = null;
-	private String keyName = null;
+    private Credential signingCredential = null;
+    private String issuerName = null;
+    private String keyName = null;
 
-	/**
-	 * Initialises the servlet: loads the keystore/keys to use to sign the
-	 * assertions and the issuer name.
-	 */
-	@Override
-	public void init() throws ServletException {
-		KeyStore keyStore = null;
+    /**
+     * Initialises the servlet: loads the keystore/keys to use to sign the
+     * assertions and the issuer name.
+     */
+    @Override
+    public void init() throws ServletException {
+        KeyStore keyStore = null;
 
-		String keystoreJdniName = getInitParameter(KEYSTORE_JNDI_INITPARAM);
-		if (keystoreJdniName == null) {
-			keystoreJdniName = DEFAULT_KEYSTORE_JNDI_INITPARAM;
-		}
-		String keystorePath = getInitParameter(KEYSTORE_PATH_INITPARAM);
-		String keystoreType = getInitParameter(KEYSTORE_TYPE_INITPARAM);
-		String keystorePassword = getInitParameter(KEYSTORE_PASSWORD_INITPARAM);
-		String keyPassword = getInitParameter(KEY_PASSWORD_INITPARAM);
-		if (keyPassword == null)
-			keyPassword = keystorePassword;
-		String alias = getInitParameter(ALIAS_INITPARAM);
-		String issuerName = getInitParameter(ISSUER_NAME_INITPARAM);
-		String keyName = getInitParameter(KEY_NAME_INITPARAM);
+        String keystoreJdniName = getInitParameter(KEYSTORE_JNDI_INITPARAM);
+        if (keystoreJdniName == null) {
+            keystoreJdniName = DEFAULT_KEYSTORE_JNDI_INITPARAM;
+        }
+        String keystorePath = getInitParameter(KEYSTORE_PATH_INITPARAM);
+        String keystoreType = getInitParameter(KEYSTORE_TYPE_INITPARAM);
+        String keystorePassword = getInitParameter(KEYSTORE_PASSWORD_INITPARAM);
+        String keyPassword = getInitParameter(KEY_PASSWORD_INITPARAM);
+        if (keyPassword == null)
+            keyPassword = keystorePassword;
+        String alias = getInitParameter(ALIAS_INITPARAM);
+        String issuerName = getInitParameter(ISSUER_NAME_INITPARAM);
+        String keyName = getInitParameter(KEY_NAME_INITPARAM);
 
-		try {
-			Context ctx = null;
-			try {
-				keyStore = (KeyStore) new InitialContext()
-						.lookup("java:comp/env/" + keystoreJdniName);
+        try {
+            Context ctx = null;
+            try {
+                keyStore = (KeyStore) new InitialContext().lookup("java:comp/env/"
+                        + keystoreJdniName);
 
-			} finally {
-				if (ctx != null) {
-					ctx.close();
-				}
-			}
-		} catch (NameNotFoundException e) {
-		} catch (NamingException e) {
-			throw new ServletException(e);
-		}
-		if (keyStore == null) {
-			try {
-				InputStream ksInputStream = null;
+            } finally {
+                if (ctx != null) {
+                    ctx.close();
+                }
+            }
+        } catch (NameNotFoundException e) {
+        } catch (NamingException e) {
+            throw new ServletException(e);
+        }
+        if (keyStore == null) {
+            try {
+                InputStream ksInputStream = null;
 
-				try {
-					if (keystorePath != null) {
-						ksInputStream = new FileInputStream(keystorePath);
-					}
-					keyStore = KeyStore
-							.getInstance((keystoreType != null) ? keystoreType
-									: KeyStore.getDefaultType());
-					keyStore.load(ksInputStream,
-							keystorePassword != null ? keystorePassword
-									.toCharArray() : null);
-				} finally {
-					if (ksInputStream != null) {
-						ksInputStream.close();
-					}
-				}
-			} catch (FileNotFoundException e) {
-				throw new ServletException("Could not load keystore.");
-			} catch (KeyStoreException e) {
-				throw new ServletException("Could not load keystore.");
-			} catch (NoSuchAlgorithmException e) {
-				throw new ServletException("Could not load keystore.");
-			} catch (CertificateException e) {
-				throw new ServletException("Could not load keystore.");
-			} catch (IOException e) {
-				throw new ServletException("Could not load keystore.");
-			}
-		}
+                try {
+                    if (keystorePath != null) {
+                        ksInputStream = new FileInputStream(keystorePath);
+                    }
+                    keyStore = KeyStore.getInstance((keystoreType != null) ? keystoreType
+                            : KeyStore.getDefaultType());
+                    keyStore.load(ksInputStream, keystorePassword != null ? keystorePassword
+                            .toCharArray() : null);
+                } finally {
+                    if (ksInputStream != null) {
+                        ksInputStream.close();
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                throw new ServletException("Could not load keystore.");
+            } catch (KeyStoreException e) {
+                throw new ServletException("Could not load keystore.");
+            } catch (NoSuchAlgorithmException e) {
+                throw new ServletException("Could not load keystore.");
+            } catch (CertificateException e) {
+                throw new ServletException("Could not load keystore.");
+            } catch (IOException e) {
+                throw new ServletException("Could not load keystore.");
+            }
+        }
 
-		try {
-			if (alias == null) {
-				Enumeration<String> aliases = keyStore.aliases();
-				while (aliases.hasMoreElements()) {
-					String tempAlias = aliases.nextElement();
-					if (keyStore.isKeyEntry(tempAlias)) {
-						alias = tempAlias;
-						break;
-					}
-				}
-			}
-			if (alias == null) {
-				throw new ServletException(
-						"Invalid keystore configuration: alias unspecified or couldn't find key at alias: "
-								+ alias);
-			}
-			Credential signingCredential = SecurityHelper.getSimpleCredential(
-					keyStore.getCertificate(alias).getPublicKey(),
-					(PrivateKey) keyStore.getKey(alias,
-							keyPassword != null ? keyPassword.toCharArray()
-									: null));
-			synchronized (this) {
-				this.signingCredential = signingCredential;
-				this.issuerName = issuerName;
-				this.keyName = keyName;
-			}
-		} catch (UnrecoverableKeyException e) {
-			throw new ServletException("Could not load keystore.");
-		} catch (KeyStoreException e) {
-			throw new ServletException("Could not load keystore.");
-		} catch (NoSuchAlgorithmException e) {
-			throw new ServletException("Could not load keystore.");
-		}
-	}
+        try {
+            if (alias == null) {
+                Enumeration<String> aliases = keyStore.aliases();
+                while (aliases.hasMoreElements()) {
+                    String tempAlias = aliases.nextElement();
+                    if (keyStore.isKeyEntry(tempAlias)) {
+                        alias = tempAlias;
+                        break;
+                    }
+                }
+            }
+            if (alias == null) {
+                throw new ServletException(
+                        "Invalid keystore configuration: alias unspecified or couldn't find key at alias: "
+                                + alias);
+            }
+            Credential signingCredential = SecurityHelper.getSimpleCredential(keyStore
+                    .getCertificate(alias).getPublicKey(), (PrivateKey) keyStore.getKey(alias,
+                    keyPassword != null ? keyPassword.toCharArray() : null));
+            synchronized (this) {
+                this.signingCredential = signingCredential;
+                this.issuerName = issuerName;
+                this.keyName = keyName;
+            }
+        } catch (UnrecoverableKeyException e) {
+            throw new ServletException("Could not load keystore.");
+        } catch (KeyStoreException e) {
+            throw new ServletException("Could not load keystore.");
+        } catch (NoSuchAlgorithmException e) {
+            throw new ServletException("Could not load keystore.");
+        }
+    }
 
-	@Override
-	protected void doGet(HttpServletRequest request,
-			HttpServletResponse response) throws ServletException, IOException {
-		Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
 
-		/*
-		 * Verifies the certificate passed in the request.
-		 */
-		X509Certificate[] certificates = (X509Certificate[]) request
-				.getAttribute("javax.servlet.request.X509Certificate");
-		if (certificates != null) {
-			X509Certificate foafSslCertificate = certificates[0];
-			try {
-				verifiedWebIDs = FOAF_SSL_VERIFIER
-						.verifyFoafSslCertificate(foafSslCertificate);
-			} catch (Exception e) {
-				throw new RuntimeException("Certificate verification failed.");
-			}
-		}
+        /*
+         * Verifies the certificate passed in the request.
+         */
+        X509Certificate[] certificates = (X509Certificate[]) request
+                .getAttribute("javax.servlet.request.X509Certificate");
+        if (certificates != null) {
+            X509Certificate foafSslCertificate = certificates[0];
+            try {
+                verifiedWebIDs = FOAF_SSL_VERIFIER.verifyFoafSslCertificate(foafSslCertificate);
+            } catch (Exception e) {
+                throw new RuntimeException("Certificate verification failed.");
+            }
+        }
 
-		if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
-			String samlRequestParam = request.getParameter("SAMLRequest");
-			if ((samlRequestParam == null) || (samlRequestParam.length() <= 0)) {
-				response.getWriter().print(
-						verifiedWebIDs.iterator().next().getName());
-				return;
-			}
-			/*
-			 * Reads the SAML request and generates the SAML response.
-			 */
-			BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
-			msgContext
-					.setInboundMessageTransport(new HttpServletRequestAdapter(
-							request));
+        if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
+            String samlRequestParam = request.getParameter("SAMLRequest");
+            if ((samlRequestParam == null) || (samlRequestParam.length() <= 0)) {
+                response.getWriter().print(verifiedWebIDs.iterator().next().getName());
+                return;
+            }
+            /*
+             * Reads the SAML request and generates the SAML response.
+             */
+            BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
+            msgContext.setInboundMessageTransport(new HttpServletRequestAdapter(request));
 
-			HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
+            HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
 
-			try {
-				decoder.decode(msgContext);
-				AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
-				final String consumerServiceUrl = authnRequest
-						.getAssertionConsumerServiceURL();
+            try {
+                decoder.decode(msgContext);
+                AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
+                final String consumerServiceUrl = authnRequest.getAssertionConsumerServiceURL();
 
-				URI webId = verifiedWebIDs.iterator().next().getUri();
+                URI webId = verifiedWebIDs.iterator().next().getUri();
 
-				Credential signingCredential = null;
-				String issuerName = null;
-				String keyname = null;
-				synchronized (this) {
-					signingCredential = this.signingCredential;
-					issuerName = this.issuerName;
-					keyname = this.keyName;
-				}
-				Response samlResponse = SamlAuthnResponseBuilder.getInstance()
-						.buildSubjectAuthenticatedAssertion(
-								URI.create(issuerName),
-								Collections.singletonList(URI
-										.create(consumerServiceUrl)), webId,
-								signingCredential, keyname);
+                Credential signingCredential = null;
+                String issuerName = null;
+                String keyname = null;
+                synchronized (this) {
+                    signingCredential = this.signingCredential;
+                    issuerName = this.issuerName;
+                    keyname = this.keyName;
+                }
+                Response samlResponse = SamlAuthnResponseBuilder.getInstance()
+                        .buildSubjectAuthenticatedAssertion(URI.create(issuerName),
+                                Collections.singletonList(URI.create(consumerServiceUrl)), webId,
+                                signingCredential, keyname);
 
-				msgContext
-						.setOutboundMessageTransport(new HttpServletResponseAdapter(
-								response, false));
-				msgContext.setOutboundSAMLMessage(samlResponse);
+                msgContext.setOutboundMessageTransport(new HttpServletResponseAdapter(response,
+                        false));
+                msgContext.setOutboundSAMLMessage(samlResponse);
 
-				HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
-					@SuppressWarnings("unchecked")
-					@Override
-					protected String getEndpointURL(
-							SAMLMessageContext messageContext)
-							throws MessageEncodingException {
-						return consumerServiceUrl;
-					}
-				};
-				httpEncoder.encode(msgContext);
-			} catch (MessageDecodingException e) {
-				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				throw new RuntimeException("Error when decoding the request.",
-						e);
-			} catch (SecurityException e) {
-				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				throw new RuntimeException("Error when decoding the request.",
-						e);
-			} catch (MessageEncodingException e) {
-				throw new RuntimeException("Error when encoding the response.",
-						e);
-			}
-		} else {
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-		}
-	}
+                HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    protected String getEndpointURL(SAMLMessageContext messageContext)
+                            throws MessageEncodingException {
+                        return consumerServiceUrl;
+                    }
+                };
+                httpEncoder.encode(msgContext);
+            } catch (MessageDecodingException e) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                throw new RuntimeException("Error when decoding the request.", e);
+            } catch (SecurityException e) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                throw new RuntimeException("Error when decoding the request.", e);
+            } catch (MessageEncodingException e) {
+                throw new RuntimeException("Error when encoding the response.", e);
+            }
+        } else {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+    }
 }

@@ -72,183 +72,173 @@ import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
  * 
  */
 public class SamlAuthnResponseBuilder {
-	/**
-	 * @return singleton.
-	 */
-	public static SamlAuthnResponseBuilder getInstance() {
-		return Holder.instance;
-	}
+    /**
+     * @return singleton.
+     */
+    public static SamlAuthnResponseBuilder getInstance() {
+        return Holder.instance;
+    }
 
-	/**
-	 * Singleton holder.
-	 */
-	private static class Holder {
-		static final SamlAuthnResponseBuilder instance = new SamlAuthnResponseBuilder();
-	}
+    /**
+     * Singleton holder.
+     */
+    private static class Holder {
+        static final SamlAuthnResponseBuilder instance = new SamlAuthnResponseBuilder();
+    }
 
-	SAMLObjectBuilder<Subject> subjectBuilder;
-	SAMLObjectBuilder<NameID> nameIdBuilder;
-	SAMLObjectBuilder<Assertion> assertionBuilder;
-	SAMLObjectBuilder<AuthnStatement> authStatementBuilder;
-	SAMLObjectBuilder<Response> responseBuilder;
-	SAMLObjectBuilder<Issuer> issuerBuilder;
-	SAMLObjectBuilder<Conditions> conditionsBuilder;
-	SAMLObjectBuilder<AudienceRestriction> audienceRestrictionBuilder;
-	SAMLObjectBuilder<Audience> audienceBuilder;
-	SAMLObjectBuilder<Status> statusBuilder;
-	SAMLObjectBuilder<StatusCode> statusCodeBuilder;
-	XMLObjectBuilder<Signature> signatureBuilder;
-	XMLObjectBuilder<KeyName> keynameBuilder;
+    SAMLObjectBuilder<Subject> subjectBuilder;
+    SAMLObjectBuilder<NameID> nameIdBuilder;
+    SAMLObjectBuilder<Assertion> assertionBuilder;
+    SAMLObjectBuilder<AuthnStatement> authStatementBuilder;
+    SAMLObjectBuilder<Response> responseBuilder;
+    SAMLObjectBuilder<Issuer> issuerBuilder;
+    SAMLObjectBuilder<Conditions> conditionsBuilder;
+    SAMLObjectBuilder<AudienceRestriction> audienceRestrictionBuilder;
+    SAMLObjectBuilder<Audience> audienceBuilder;
+    SAMLObjectBuilder<Status> statusBuilder;
+    SAMLObjectBuilder<StatusCode> statusCodeBuilder;
+    XMLObjectBuilder<Signature> signatureBuilder;
+    XMLObjectBuilder<KeyName> keynameBuilder;
 
-	/**
-	 * Constructor. Initialiases the various SAML object builders of OpenSAML.
-	 */
-	@SuppressWarnings("unchecked")
-	private SamlAuthnResponseBuilder() {
-		XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration
-				.getBuilderFactory();
-		if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
-			try {
-				DefaultBootstrap.bootstrap();
-			} catch (ConfigurationException e) {
-				throw new RuntimeException(e);
-			}
-			xmlObjectBuilderFactory = Configuration.getBuilderFactory();
-		}
+    /**
+     * Constructor. Initialiases the various SAML object builders of OpenSAML.
+     */
+    @SuppressWarnings("unchecked")
+    private SamlAuthnResponseBuilder() {
+        XMLObjectBuilderFactory xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        if (xmlObjectBuilderFactory.getBuilders().isEmpty()) {
+            try {
+                DefaultBootstrap.bootstrap();
+            } catch (ConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+            xmlObjectBuilderFactory = Configuration.getBuilderFactory();
+        }
 
-		subjectBuilder = (SAMLObjectBuilder<Subject>) xmlObjectBuilderFactory
-				.getBuilder(Subject.DEFAULT_ELEMENT_NAME);
+        subjectBuilder = (SAMLObjectBuilder<Subject>) xmlObjectBuilderFactory
+                .getBuilder(Subject.DEFAULT_ELEMENT_NAME);
 
-		nameIdBuilder = (SAMLObjectBuilder<NameID>) xmlObjectBuilderFactory
-				.getBuilder(NameID.DEFAULT_ELEMENT_NAME);
+        nameIdBuilder = (SAMLObjectBuilder<NameID>) xmlObjectBuilderFactory
+                .getBuilder(NameID.DEFAULT_ELEMENT_NAME);
 
-		assertionBuilder = (SAMLObjectBuilder<Assertion>) xmlObjectBuilderFactory
-				.getBuilder(Assertion.DEFAULT_ELEMENT_NAME);
+        assertionBuilder = (SAMLObjectBuilder<Assertion>) xmlObjectBuilderFactory
+                .getBuilder(Assertion.DEFAULT_ELEMENT_NAME);
 
-		authStatementBuilder = (SAMLObjectBuilder<AuthnStatement>) xmlObjectBuilderFactory
-				.getBuilder(AuthnStatement.DEFAULT_ELEMENT_NAME);
+        authStatementBuilder = (SAMLObjectBuilder<AuthnStatement>) xmlObjectBuilderFactory
+                .getBuilder(AuthnStatement.DEFAULT_ELEMENT_NAME);
 
-		responseBuilder = (SAMLObjectBuilder<Response>) xmlObjectBuilderFactory
-				.getBuilder(Response.DEFAULT_ELEMENT_NAME);
+        responseBuilder = (SAMLObjectBuilder<Response>) xmlObjectBuilderFactory
+                .getBuilder(Response.DEFAULT_ELEMENT_NAME);
 
-		issuerBuilder = (SAMLObjectBuilder<Issuer>) xmlObjectBuilderFactory
-				.getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+        issuerBuilder = (SAMLObjectBuilder<Issuer>) xmlObjectBuilderFactory
+                .getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
 
-		conditionsBuilder = (SAMLObjectBuilder<Conditions>) xmlObjectBuilderFactory
-				.getBuilder(Conditions.DEFAULT_ELEMENT_NAME);
+        conditionsBuilder = (SAMLObjectBuilder<Conditions>) xmlObjectBuilderFactory
+                .getBuilder(Conditions.DEFAULT_ELEMENT_NAME);
 
-		audienceRestrictionBuilder = (SAMLObjectBuilder<AudienceRestriction>) xmlObjectBuilderFactory
-				.getBuilder(AudienceRestriction.DEFAULT_ELEMENT_NAME);
+        audienceRestrictionBuilder = (SAMLObjectBuilder<AudienceRestriction>) xmlObjectBuilderFactory
+                .getBuilder(AudienceRestriction.DEFAULT_ELEMENT_NAME);
 
-		audienceBuilder = (SAMLObjectBuilder<Audience>) xmlObjectBuilderFactory
-				.getBuilder(Audience.DEFAULT_ELEMENT_NAME);
+        audienceBuilder = (SAMLObjectBuilder<Audience>) xmlObjectBuilderFactory
+                .getBuilder(Audience.DEFAULT_ELEMENT_NAME);
 
-		statusBuilder = (SAMLObjectBuilder<Status>) xmlObjectBuilderFactory
-				.getBuilder(Status.DEFAULT_ELEMENT_NAME);
+        statusBuilder = (SAMLObjectBuilder<Status>) xmlObjectBuilderFactory
+                .getBuilder(Status.DEFAULT_ELEMENT_NAME);
 
-		statusCodeBuilder = (SAMLObjectBuilder<StatusCode>) xmlObjectBuilderFactory
-				.getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
+        statusCodeBuilder = (SAMLObjectBuilder<StatusCode>) xmlObjectBuilderFactory
+                .getBuilder(StatusCode.DEFAULT_ELEMENT_NAME);
 
-		signatureBuilder = (XMLObjectBuilder<Signature>) xmlObjectBuilderFactory
-				.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
+        signatureBuilder = (XMLObjectBuilder<Signature>) xmlObjectBuilderFactory
+                .getBuilder(Signature.DEFAULT_ELEMENT_NAME);
 
-		keynameBuilder = (XMLObjectBuilder<KeyName>) xmlObjectBuilderFactory
-				.getBuilder(KeyName.DEFAULT_ELEMENT_NAME);
-	}
+        keynameBuilder = (XMLObjectBuilder<KeyName>) xmlObjectBuilderFactory
+                .getBuilder(KeyName.DEFAULT_ELEMENT_NAME);
+    }
 
-	public Response buildSubjectAuthenticatedAssertion(URI issuerId,
-			List<URI> consumerIds, URI subjectId, Credential signingCredential) {
-		return buildSubjectAuthenticatedAssertion(issuerId, consumerIds,
-				subjectId, signingCredential, null, new DateTime());
-	}
+    public Response buildSubjectAuthenticatedAssertion(URI issuerId, List<URI> consumerIds,
+            URI subjectId, Credential signingCredential) {
+        return buildSubjectAuthenticatedAssertion(issuerId, consumerIds, subjectId,
+                signingCredential, null, new DateTime());
+    }
 
-	public Response buildSubjectAuthenticatedAssertion(URI issuerId,
-			List<URI> consumerIds, URI subjectId, Credential signingCredential,
-			String keyNameValue) {
-		return buildSubjectAuthenticatedAssertion(issuerId, consumerIds,
-				subjectId, signingCredential, keyNameValue, new DateTime());
-	}
+    public Response buildSubjectAuthenticatedAssertion(URI issuerId, List<URI> consumerIds,
+            URI subjectId, Credential signingCredential, String keyNameValue) {
+        return buildSubjectAuthenticatedAssertion(issuerId, consumerIds, subjectId,
+                signingCredential, keyNameValue, new DateTime());
+    }
 
-	public Response buildSubjectAuthenticatedAssertion(URI issuerId,
-			List<URI> consumerIds, URI subjectId, Credential signingCredential,
-			DateTime dateTime) {
-		return buildSubjectAuthenticatedAssertion(issuerId, consumerIds,
-				subjectId, signingCredential, null, dateTime);
-	}
+    public Response buildSubjectAuthenticatedAssertion(URI issuerId, List<URI> consumerIds,
+            URI subjectId, Credential signingCredential, DateTime dateTime) {
+        return buildSubjectAuthenticatedAssertion(issuerId, consumerIds, subjectId,
+                signingCredential, null, dateTime);
+    }
 
-	public Response buildSubjectAuthenticatedAssertion(URI issuerId,
-			List<URI> consumerIds, URI subjectId, Credential signingCredential,
-			String keyNameValue, DateTime dateTime) {
-		Issuer issuer = issuerBuilder.buildObject();
-		issuer.setValue(issuerId.toASCIIString());
+    public Response buildSubjectAuthenticatedAssertion(URI issuerId, List<URI> consumerIds,
+            URI subjectId, Credential signingCredential, String keyNameValue, DateTime dateTime) {
+        Issuer issuer = issuerBuilder.buildObject();
+        issuer.setValue(issuerId.toASCIIString());
 
-		NameID nameId = nameIdBuilder.buildObject();
-		// TODO nameId.setFormat("http://foafssl.org/foafsslid");
-		nameId.setValue(subjectId.toASCIIString());
+        NameID nameId = nameIdBuilder.buildObject();
+        // TODO nameId.setFormat("http://foafssl.org/foafsslid");
+        nameId.setValue(subjectId.toASCIIString());
 
-		Subject subject = subjectBuilder.buildObject();
-		subject.setNameID(nameId);
+        Subject subject = subjectBuilder.buildObject();
+        subject.setNameID(nameId);
 
-		AuthnStatement authnStatement = authStatementBuilder.buildObject();
-		authnStatement.setAuthnInstant(dateTime);
+        AuthnStatement authnStatement = authStatementBuilder.buildObject();
+        authnStatement.setAuthnInstant(dateTime);
 
-		Assertion assertion = assertionBuilder.buildObject();
-		assertion.setSubject(subject);
-		if ((consumerIds != null) && (consumerIds.size() > 0)) {
-			Conditions conditions = conditionsBuilder.buildObject();
-			AudienceRestriction audienceRestriction = audienceRestrictionBuilder
-					.buildObject();
-			for (URI consumerId : consumerIds) {
-				Audience audience = audienceBuilder.buildObject();
-				audience.setAudienceURI(consumerId.toASCIIString());
-				audienceRestriction.getAudiences().add(audience);
-			}
-			conditions.getAudienceRestrictions().add(audienceRestriction);
-			assertion.setConditions(conditions);
-		}
-		assertion.getAuthnStatements().add(authnStatement);
-		assertion.setIssuer(issuer);
+        Assertion assertion = assertionBuilder.buildObject();
+        assertion.setSubject(subject);
+        if ((consumerIds != null) && (consumerIds.size() > 0)) {
+            Conditions conditions = conditionsBuilder.buildObject();
+            AudienceRestriction audienceRestriction = audienceRestrictionBuilder.buildObject();
+            for (URI consumerId : consumerIds) {
+                Audience audience = audienceBuilder.buildObject();
+                audience.setAudienceURI(consumerId.toASCIIString());
+                audienceRestriction.getAudiences().add(audience);
+            }
+            conditions.getAudienceRestrictions().add(audienceRestriction);
+            assertion.setConditions(conditions);
+        }
+        assertion.getAuthnStatements().add(authnStatement);
+        assertion.setIssuer(issuer);
 
-		org.opensaml.saml2.core.Response response = responseBuilder
-				.buildObject();
-		response.getAssertions().add(assertion);
+        org.opensaml.saml2.core.Response response = responseBuilder.buildObject();
+        response.getAssertions().add(assertion);
 
-		StatusCode statusCode = statusCodeBuilder.buildObject();
-		statusCode.setValue(StatusCode.SUCCESS_URI);
-		Status status = statusBuilder.buildObject();
-		status.setStatusCode(statusCode);
-		response.setStatus(status);
+        StatusCode statusCode = statusCodeBuilder.buildObject();
+        statusCode.setValue(StatusCode.SUCCESS_URI);
+        Status status = statusBuilder.buildObject();
+        status.setStatusCode(statusCode);
+        response.setStatus(status);
 
-		if (signingCredential != null) {
-			try {
-				Signature signature = signatureBuilder
-						.buildObject(Signature.DEFAULT_ELEMENT_NAME);
-				SecurityHelper.prepareSignatureParams(signature,
-						signingCredential, null, null);
-				signature.getKeyInfo().getKeyValues().clear();
-				if (keyNameValue != null) {
-					KeyName keyname = keynameBuilder
-							.buildObject(KeyName.DEFAULT_ELEMENT_NAME);
-					keyname.setValue(keyNameValue);
-					signature.getKeyInfo().getKeyNames().add(keyname);
-				}
+        if (signingCredential != null) {
+            try {
+                Signature signature = signatureBuilder.buildObject(Signature.DEFAULT_ELEMENT_NAME);
+                SecurityHelper.prepareSignatureParams(signature, signingCredential, null, null);
+                signature.getKeyInfo().getKeyValues().clear();
+                if (keyNameValue != null) {
+                    KeyName keyname = keynameBuilder.buildObject(KeyName.DEFAULT_ELEMENT_NAME);
+                    keyname.setValue(keyNameValue);
+                    signature.getKeyInfo().getKeyNames().add(keyname);
+                }
 
-				signature.setSigningCredential(signingCredential);
-				assertion.setSignature(signature);
-				assertion.setID("1");
+                signature.setSigningCredential(signingCredential);
+                assertion.setSignature(signature);
+                assertion.setID("1");
 
-				Configuration.getMarshallerFactory().getMarshaller(response)
-						.marshall(response);
-				Signer.signObject(signature);
-			} catch (SecurityException e) {
-				throw new RuntimeException(e);
-			} catch (MarshallingException e) {
-				throw new RuntimeException(e);
-			} catch (SignatureException e) {
-				throw new RuntimeException(e);
-			}
-		}
+                Configuration.getMarshallerFactory().getMarshaller(response).marshall(response);
+                Signer.signObject(signature);
+            } catch (SecurityException e) {
+                throw new RuntimeException(e);
+            } catch (MarshallingException e) {
+                throw new RuntimeException(e);
+            } catch (SignatureException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-		return response;
-	}
+        return response;
+    }
 }

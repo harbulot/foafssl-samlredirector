@@ -69,85 +69,74 @@ import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletResponseOutTranspor
  * 
  */
 public class FoafSslAuthenticatorResource extends Resource {
-	private static FoafSslVerifier FOAF_SSL_VERIFIER = new DereferencingFoafSslVerifier();
+    private static FoafSslVerifier FOAF_SSL_VERIFIER = new DereferencingFoafSslVerifier();
 
-	public final static String SIGNING_CREDENTIAL_ATTRIBUTE = "uk.ac.manchester.rcs.bruno.samlredirector.attr_signing_cred";
-	public final static String ISSUER_NAME_ATTRIBUTE = "uk.ac.manchester.rcs.bruno.samlredirector.attr_issuer_name";
+    public final static String SIGNING_CREDENTIAL_ATTRIBUTE = "uk.ac.manchester.rcs.bruno.samlredirector.attr_signing_cred";
+    public final static String ISSUER_NAME_ATTRIBUTE = "uk.ac.manchester.rcs.bruno.samlredirector.attr_issuer_name";
 
-	@Override
-	public void init(Context context, Request request,
-			org.restlet.data.Response response) {
-		super.init(context, request, response);
-		Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
+    @Override
+    public void init(Context context, Request request, org.restlet.data.Response response) {
+        super.init(context, request, response);
+        Collection<? extends FoafSslPrincipal> verifiedWebIDs = null;
 
-		@SuppressWarnings("unchecked")
-		List<X509Certificate> certificates = (List<X509Certificate>) request
-				.getAttributes().get("org.restlet.https.clientCertificates");
-		if (certificates != null) {
-			X509Certificate foafSslCertificate = certificates.get(0);
-			try {
-				verifiedWebIDs = FOAF_SSL_VERIFIER
-						.verifyFoafSslCertificate(foafSslCertificate);
-			} catch (Exception e) {
-				getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
-				throw new RuntimeException("Certificate verification failed.");
-			}
-		}
+        @SuppressWarnings("unchecked")
+        List<X509Certificate> certificates = (List<X509Certificate>) request.getAttributes().get(
+                "org.restlet.https.clientCertificates");
+        if (certificates != null) {
+            X509Certificate foafSslCertificate = certificates.get(0);
+            try {
+                verifiedWebIDs = FOAF_SSL_VERIFIER.verifyFoafSslCertificate(foafSslCertificate);
+            } catch (Exception e) {
+                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
+                throw new RuntimeException("Certificate verification failed.");
+            }
+        }
 
-		if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
-			BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
-			msgContext
-					.setInboundMessageTransport(new RestletRequestInTransportAdapter(
-							request));
+        if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
+            BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
+            msgContext.setInboundMessageTransport(new RestletRequestInTransportAdapter(request));
 
-			HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
+            HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
 
-			try {
-				decoder.decode(msgContext);
-				AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
-				final String consumerServiceUrl = authnRequest
-						.getAssertionConsumerServiceURL();
+            try {
+                decoder.decode(msgContext);
+                AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
+                final String consumerServiceUrl = authnRequest.getAssertionConsumerServiceURL();
 
-				URI webId = verifiedWebIDs.iterator().next().getUri();
+                URI webId = verifiedWebIDs.iterator().next().getUri();
 
-				Credential signingCredential = (Credential) getContext()
-						.getAttributes().get(SIGNING_CREDENTIAL_ATTRIBUTE);
-				String issuerName = (String) getContext().getAttributes().get(
-						ISSUER_NAME_ATTRIBUTE);
-				Response samlResponse = SamlAuthnResponseBuilder.getInstance()
-						.buildSubjectAuthenticatedAssertion(
-								URI.create(issuerName), null, webId,
-								signingCredential);
+                Credential signingCredential = (Credential) getContext().getAttributes().get(
+                        SIGNING_CREDENTIAL_ATTRIBUTE);
+                String issuerName = (String) getContext().getAttributes()
+                        .get(ISSUER_NAME_ATTRIBUTE);
+                Response samlResponse = SamlAuthnResponseBuilder.getInstance()
+                        .buildSubjectAuthenticatedAssertion(URI.create(issuerName), null, webId,
+                                signingCredential);
 
-				msgContext
-						.setOutboundMessageTransport(new RestletResponseOutTransportAdapter(
-								response));
-				msgContext.setOutboundSAMLMessage(samlResponse);
+                msgContext.setOutboundMessageTransport(new RestletResponseOutTransportAdapter(
+                        response));
+                msgContext.setOutboundSAMLMessage(samlResponse);
 
-				HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
-					@SuppressWarnings("unchecked")
-					@Override
-					protected String getEndpointURL(
-							SAMLMessageContext messageContext)
-							throws MessageEncodingException {
-						return consumerServiceUrl;
-					}
-				};
-				httpEncoder.encode(msgContext);
-			} catch (MessageDecodingException e) {
-				response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
-				throw new RuntimeException("Error when decoding the request.",
-						e);
-			} catch (SecurityException e) {
-				response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
-				throw new RuntimeException("Error when decoding the request.",
-						e);
-			} catch (MessageEncodingException e) {
-				throw new RuntimeException("Error when encoding the response.",
-						e);
-			}
-		} else {
-			response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
-		}
-	}
+                HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    protected String getEndpointURL(SAMLMessageContext messageContext)
+                            throws MessageEncodingException {
+                        return consumerServiceUrl;
+                    }
+                };
+                httpEncoder.encode(msgContext);
+            } catch (MessageDecodingException e) {
+                response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+                throw new RuntimeException("Error when decoding the request.", e);
+            } catch (SecurityException e) {
+                response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+                throw new RuntimeException("Error when decoding the request.", e);
+            } catch (MessageEncodingException e) {
+                throw new RuntimeException("Error when encoding the response.", e);
+            }
+        } else {
+            response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
+        }
+    }
 }

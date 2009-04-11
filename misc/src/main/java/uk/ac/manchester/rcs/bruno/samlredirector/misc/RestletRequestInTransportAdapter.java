@@ -45,116 +45,115 @@ import org.restlet.data.Request;
  * 
  */
 public class RestletRequestInTransportAdapter implements HTTPInTransport {
-	private Request request;
+    private Request request;
 
-	public RestletRequestInTransportAdapter(Request request) {
-		this.request = request;
-	}
+    public RestletRequestInTransportAdapter(Request request) {
+        this.request = request;
+    }
 
-	@Override
-	public String getPeerAddress() {
-		return this.request.getClientInfo().getAddress();
-	}
+    @Override
+    public String getPeerAddress() {
+        return this.request.getClientInfo().getAddress();
+    }
 
-	@Override
-	public String getPeerDomainName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public String getPeerDomainName() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public InputStream getIncomingStream() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public InputStream getIncomingStream() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Object getAttribute(String name) {
-		return null;
-	}
+    @Override
+    public Object getAttribute(String name) {
+        return null;
+    }
 
-	@Override
-	public String getCharacterEncoding() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public String getCharacterEncoding() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Credential getLocalCredential() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Credential getLocalCredential() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Credential getPeerCredential() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Credential getPeerCredential() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public boolean isAuthenticated() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isAuthenticated() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean isConfidential() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isConfidential() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean isIntegrityProtected() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isIntegrityProtected() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public void setAuthenticated(boolean arg0) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setAuthenticated(boolean arg0) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void setConfidential(boolean arg0) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setConfidential(boolean arg0) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void setIntegrityProtected(boolean arg0) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setIntegrityProtected(boolean arg0) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public String getHeaderValue(String name) {
-		return null;
-	}
+    @Override
+    public String getHeaderValue(String name) {
+        return null;
+    }
 
-	@Override
-	public String getHTTPMethod() {
-		return this.request.getMethod().getName();
-	}
+    @Override
+    public String getHTTPMethod() {
+        return this.request.getMethod().getName();
+    }
 
-	@Override
-	public String getParameterValue(String name) {
-		return request.getResourceRef().getQueryAsForm().getFirstValue(name);
-	}
+    @Override
+    public String getParameterValue(String name) {
+        return request.getResourceRef().getQueryAsForm().getFirstValue(name);
+    }
 
-	@Override
-	public List<String> getParameterValues(String name) {
-		return Arrays.asList(request.getResourceRef().getQueryAsForm()
-				.getValuesArray(name));
-	}
+    @Override
+    public List<String> getParameterValues(String name) {
+        return Arrays.asList(request.getResourceRef().getQueryAsForm().getValuesArray(name));
+    }
 
-	@Override
-	public int getStatusCode() {
-		return -1;
-	}
+    @Override
+    public int getStatusCode() {
+        return -1;
+    }
 
-	@Override
-	public HTTP_VERSION getVersion() {
-		return null;
-	}
+    @Override
+    public HTTP_VERSION getVersion() {
+        return null;
+    }
 }

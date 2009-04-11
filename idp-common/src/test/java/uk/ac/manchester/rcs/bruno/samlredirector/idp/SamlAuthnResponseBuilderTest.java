@@ -73,168 +73,161 @@ import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
  * 
  */
 public class SamlAuthnResponseBuilderTest {
-	public final static String CERTIFICATES_DIRECTORY = "org/jsslutils/certificates/";
-	public final static String KEYSTORE_PASSWORD_STRING = "testtest";
-	public final static char[] KEYSTORE_PASSWORD = KEYSTORE_PASSWORD_STRING
-			.toCharArray();
+    public final static String CERTIFICATES_DIRECTORY = "org/jsslutils/certificates/";
+    public final static String KEYSTORE_PASSWORD_STRING = "testtest";
+    public final static char[] KEYSTORE_PASSWORD = KEYSTORE_PASSWORD_STRING.toCharArray();
 
-	private static final String TEST_SP_URI = "http://sp.example.org/sp/";
-	private static final String TEST_IDP_URI = "http://idp.example.org/idp/";
-	private static final String TEST_ID_URI = "http://foaf.example.com/bruno/#me";
+    private static final String TEST_SP_URI = "http://sp.example.org/sp/";
+    private static final String TEST_IDP_URI = "http://idp.example.org/idp/";
+    private static final String TEST_ID_URI = "http://foaf.example.com/bruno/#me";
 
-	/**
-	 * Loads the 'localhost' keystore from the test keystore.
-	 * 
-	 * @return test keystore.
-	 * @throws Exception
-	 */
-	public KeyStore getKeyStore() throws Exception {
-		KeyStore ks = KeyStore.getInstance("PKCS12");
-		InputStream ksis = ClassLoader
-				.getSystemResourceAsStream(CERTIFICATES_DIRECTORY
-						+ "localhost.p12");
-		ks.load(ksis, KEYSTORE_PASSWORD);
-		ksis.close();
-		return ks;
-	}
+    /**
+     * Loads the 'localhost' keystore from the test keystore.
+     * 
+     * @return test keystore.
+     * @throws Exception
+     */
+    public KeyStore getKeyStore() throws Exception {
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        InputStream ksis = ClassLoader.getSystemResourceAsStream(CERTIFICATES_DIRECTORY
+                + "localhost.p12");
+        ks.load(ksis, KEYSTORE_PASSWORD);
+        ksis.close();
+        return ks;
+    }
 
-	public PublicKey getPublicKey() throws Exception {
-		KeyStore keyStore = getKeyStore();
-		Enumeration<String> aliases = keyStore.aliases();
-		while (aliases.hasMoreElements()) {
-			String alias = aliases.nextElement();
-			if (keyStore.isKeyEntry(alias)) {
-				return keyStore.getCertificate(alias).getPublicKey();
-			}
-		}
-		return null;
-	}
+    public PublicKey getPublicKey() throws Exception {
+        KeyStore keyStore = getKeyStore();
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            if (keyStore.isKeyEntry(alias)) {
+                return keyStore.getCertificate(alias).getPublicKey();
+            }
+        }
+        return null;
+    }
 
-	public PrivateKey getPrivateKey() throws Exception {
-		KeyStore keyStore = getKeyStore();
-		Enumeration<String> aliases = keyStore.aliases();
-		while (aliases.hasMoreElements()) {
-			String alias = aliases.nextElement();
-			if (keyStore.isKeyEntry(alias)) {
-				return (PrivateKey) keyStore.getKey(alias, KEYSTORE_PASSWORD);
-			}
-		}
-		return null;
-	}
+    public PrivateKey getPrivateKey() throws Exception {
+        KeyStore keyStore = getKeyStore();
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            if (keyStore.isKeyEntry(alias)) {
+                return (PrivateKey) keyStore.getKey(alias, KEYSTORE_PASSWORD);
+            }
+        }
+        return null;
+    }
 
-	public void testSignature(Credential signingCredential,
-			final Credential verifyingCredential) throws Throwable {
-		DateTime dateTime = new DateTime(500000);
+    public void testSignature(Credential signingCredential, final Credential verifyingCredential)
+            throws Throwable {
+        DateTime dateTime = new DateTime(500000);
 
-		Response samlResponse = SamlAuthnResponseBuilder.getInstance()
-				.buildSubjectAuthenticatedAssertion(URI.create(TEST_IDP_URI),
-						Collections.singletonList(URI.create(TEST_SP_URI)),
-						URI.create(TEST_ID_URI), signingCredential, dateTime);
+        Response samlResponse = SamlAuthnResponseBuilder.getInstance()
+                .buildSubjectAuthenticatedAssertion(URI.create(TEST_IDP_URI),
+                        Collections.singletonList(URI.create(TEST_SP_URI)),
+                        URI.create(TEST_ID_URI), signingCredential, dateTime);
 
-		assertNotNull(samlResponse);
+        assertNotNull(samlResponse);
 
-		/*
-		 * Tests the response.
-		 */
-		assertNotNull(samlResponse.getAssertions());
-		assertEquals(1, samlResponse.getAssertions().size());
-		final Assertion samlAssertion = samlResponse.getAssertions().get(0);
+        /*
+         * Tests the response.
+         */
+        assertNotNull(samlResponse.getAssertions());
+        assertEquals(1, samlResponse.getAssertions().size());
+        final Assertion samlAssertion = samlResponse.getAssertions().get(0);
 
-		samlAssertion.detach();
-		/*
-		 * Displays the response as XML.
-		 */
-		MarshallerFactory marshallerFactory = Configuration
-				.getMarshallerFactory();
-		Marshaller marshaller = marshallerFactory.getMarshaller(samlAssertion);
-		Element responseElement = marshaller.marshall(samlAssertion);
-		System.out.println();
-		TransformerFactory tFactory = TransformerFactory.newInstance();
-		Transformer t = tFactory.newTransformer();
-		Source xmlSource = new DOMSource(responseElement);
-		StreamResult streamResult = new StreamResult(System.out);
-		t.transform(xmlSource, streamResult);
-		System.out.println();
-		System.out.println();
+        samlAssertion.detach();
+        /*
+         * Displays the response as XML.
+         */
+        MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
+        Marshaller marshaller = marshallerFactory.getMarshaller(samlAssertion);
+        Element responseElement = marshaller.marshall(samlAssertion);
+        System.out.println();
+        TransformerFactory tFactory = TransformerFactory.newInstance();
+        Transformer t = tFactory.newTransformer();
+        Source xmlSource = new DOMSource(responseElement);
+        StreamResult streamResult = new StreamResult(System.out);
+        t.transform(xmlSource, streamResult);
+        System.out.println();
+        System.out.println();
 
-		assertNotNull(samlAssertion);
-		assertNotNull(samlAssertion.getSubject());
-		assertNotNull(samlAssertion.getSubject().getNameID());
-		// assertEquals("... some format ...", responseAssertion.getSubject()
-		// .getNameID().getFormat());
-		assertEquals(TEST_ID_URI, samlAssertion.getSubject().getNameID()
-				.getValue());
-		assertNotNull(samlAssertion.getAuthnStatements());
-		assertEquals(1, samlAssertion.getAuthnStatements().size());
-		AuthnStatement samlAuthnStatement = samlAssertion.getAuthnStatements()
-				.get(0);
-		DateTime authnTime = samlAuthnStatement.getAuthnInstant();
-		assertTrue(authnTime.compareTo(dateTime) == 0);
-		assertNotNull("Signed assertion? ", samlAssertion.getSignature());
+        assertNotNull(samlAssertion);
+        assertNotNull(samlAssertion.getSubject());
+        assertNotNull(samlAssertion.getSubject().getNameID());
+        // assertEquals("... some format ...", responseAssertion.getSubject()
+        // .getNameID().getFormat());
+        assertEquals(TEST_ID_URI, samlAssertion.getSubject().getNameID().getValue());
+        assertNotNull(samlAssertion.getAuthnStatements());
+        assertEquals(1, samlAssertion.getAuthnStatements().size());
+        AuthnStatement samlAuthnStatement = samlAssertion.getAuthnStatements().get(0);
+        DateTime authnTime = samlAuthnStatement.getAuthnInstant();
+        assertTrue(authnTime.compareTo(dateTime) == 0);
+        assertNotNull("Signed assertion? ", samlAssertion.getSignature());
 
-		Thread th = new Thread() {
-			public void run() {
-				try {
-					SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-					signatureProfileValidator.validate(samlAssertion
-							.getSignature());
+        Thread th = new Thread() {
+            public void run() {
+                try {
+                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
+                    signatureProfileValidator.validate(samlAssertion.getSignature());
 
-					SignatureValidator signatureValidator = new SignatureValidator(
-							verifyingCredential);
-					Signature signature = samlAssertion.getSignature();
-					signatureValidator.validate(signature);
-				} catch (ValidationException e) {
-					e.printStackTrace();
-					throw new RuntimeException(e);
-				}
-			}
-		};
-		UncaughtExceptionHandlerImpl exHandler = new UncaughtExceptionHandlerImpl();
-		th.setUncaughtExceptionHandler(exHandler);
-		th.start();
-		th.join();
-		if (exHandler.getThrowable() != null) {
-			throw exHandler.getThrowable();
-		}
-	}
+                    SignatureValidator signatureValidator = new SignatureValidator(
+                            verifyingCredential);
+                    Signature signature = samlAssertion.getSignature();
+                    signatureValidator.validate(signature);
+                } catch (ValidationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        UncaughtExceptionHandlerImpl exHandler = new UncaughtExceptionHandlerImpl();
+        th.setUncaughtExceptionHandler(exHandler);
+        th.start();
+        th.join();
+        if (exHandler.getThrowable() != null) {
+            throw exHandler.getThrowable();
+        }
+    }
 
-	public static class UncaughtExceptionHandlerImpl implements
-			UncaughtExceptionHandler {
-		private volatile Throwable throwable = null;
+    public static class UncaughtExceptionHandlerImpl implements UncaughtExceptionHandler {
+        private volatile Throwable throwable = null;
 
-		@Override
-		public void uncaughtException(Thread t, Throwable e) {
-			this.throwable = e;
-		}
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            this.throwable = e;
+        }
 
-		public Throwable getThrowable() {
-			return this.throwable;
-		}
-	}
+        public Throwable getThrowable() {
+            return this.throwable;
+        }
+    }
 
-	@Test
-	public void testSameBasicCredential() throws Throwable {
-		BasicCredential basicCred = new BasicCredential();
-		basicCred.setPrivateKey(getPrivateKey());
-		basicCred.setPublicKey(getPublicKey());
-		testSignature(basicCred, basicCred);
-	}
+    @Test
+    public void testSameBasicCredential() throws Throwable {
+        BasicCredential basicCred = new BasicCredential();
+        basicCred.setPrivateKey(getPrivateKey());
+        basicCred.setPublicKey(getPublicKey());
+        testSignature(basicCred, basicCred);
+    }
 
-	@Test
-	public void testDistinctBasicCredential() throws Throwable {
-		BasicCredential signingCred = new BasicCredential();
-		signingCred.setPrivateKey(getPrivateKey());
-		signingCred.setPublicKey(getPublicKey());
-		BasicCredential verifyingCred = new BasicCredential();
-		verifyingCred.setPublicKey(getPublicKey());
-		verifyingCred.setPrivateKey(getPrivateKey());
-		testSignature(signingCred, verifyingCred);
-	}
+    @Test
+    public void testDistinctBasicCredential() throws Throwable {
+        BasicCredential signingCred = new BasicCredential();
+        signingCred.setPrivateKey(getPrivateKey());
+        signingCred.setPublicKey(getPublicKey());
+        BasicCredential verifyingCred = new BasicCredential();
+        verifyingCred.setPublicKey(getPublicKey());
+        verifyingCred.setPrivateKey(getPrivateKey());
+        testSignature(signingCred, verifyingCred);
+    }
 
-	@Test
-	public void testSecHelperCredential() throws Throwable {
-		Credential signingCred = SecurityHelper.getSimpleCredential(
-				getPublicKey(), getPrivateKey());
-		testSignature(signingCred, signingCred);
-	}
+    @Test
+    public void testSecHelperCredential() throws Throwable {
+        Credential signingCred = SecurityHelper
+                .getSimpleCredential(getPublicKey(), getPrivateKey());
+        testSignature(signingCred, signingCred);
+    }
 }

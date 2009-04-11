@@ -45,138 +45,138 @@ import org.restlet.data.Status;
  * 
  */
 public class RestletResponseOutTransportAdapter implements HTTPOutTransport {
-	private Response response;
+    private Response response;
 
-	public RestletResponseOutTransportAdapter(Response response) {
-		this.response = response;
-	}
+    public RestletResponseOutTransportAdapter(Response response) {
+        this.response = response;
+    }
 
-	@Override
-	public void addParameter(String name, String value) {
-	}
+    @Override
+    public void addParameter(String name, String value) {
+    }
 
-	@Override
-	public void sendRedirect(String location) {
-		this.response.setLocationRef(location);
-	}
+    @Override
+    public void sendRedirect(String location) {
+        this.response.setLocationRef(location);
+    }
 
-	@Override
-	public void setHeader(String name, String value) {
-		// TODO
-	}
+    @Override
+    public void setHeader(String name, String value) {
+        // TODO
+    }
 
-	@Override
-	public void setStatusCode(int statusCode) {
-		this.response.setStatus(Status.valueOf(statusCode));
-	}
+    @Override
+    public void setStatusCode(int statusCode) {
+        this.response.setStatus(Status.valueOf(statusCode));
+    }
 
-	@Override
-	public void setVersion(HTTP_VERSION arg0) {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void setVersion(HTTP_VERSION arg0) {
+        // TODO Auto-generated method stub
+    }
 
-	@Override
-	public OutputStream getOutgoingStream() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public OutputStream getOutgoingStream() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public void setAttribute(String name, Object value) {
-	}
+    @Override
+    public void setAttribute(String name, Object value) {
+    }
 
-	@Override
-	public void setCharacterEncoding(String arg0) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setCharacterEncoding(String arg0) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public String getHeaderValue(String name) {
-		// TODO
-		return null;
-	}
+    @Override
+    public String getHeaderValue(String name) {
+        // TODO
+        return null;
+    }
 
-	@Override
-	public String getHTTPMethod() {
-		return this.response.getRequest().getMethod().getName();
-	}
+    @Override
+    public String getHTTPMethod() {
+        return this.response.getRequest().getMethod().getName();
+    }
 
-	@Override
-	public String getParameterValue(String name) {
-		return null;
-	}
+    @Override
+    public String getParameterValue(String name) {
+        return null;
+    }
 
-	@Override
-	public List<String> getParameterValues(String name) {
-		return null;
-	}
+    @Override
+    public List<String> getParameterValues(String name) {
+        return null;
+    }
 
-	@Override
-	public int getStatusCode() {
-		return this.response.getStatus().getCode();
-	}
+    @Override
+    public int getStatusCode() {
+        return this.response.getStatus().getCode();
+    }
 
-	@Override
-	public HTTP_VERSION getVersion() {
-		return null;
-	}
+    @Override
+    public HTTP_VERSION getVersion() {
+        return null;
+    }
 
-	@Override
-	public Object getAttribute(String name) {
-		return null;
-	}
+    @Override
+    public Object getAttribute(String name) {
+        return null;
+    }
 
-	@Override
-	public String getCharacterEncoding() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public String getCharacterEncoding() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Credential getLocalCredential() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Credential getLocalCredential() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Credential getPeerCredential() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Credential getPeerCredential() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public boolean isAuthenticated() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isAuthenticated() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean isConfidential() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isConfidential() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public boolean isIntegrityProtected() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean isIntegrityProtected() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public void setAuthenticated(boolean authenticated) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setAuthenticated(boolean authenticated) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void setConfidential(boolean confidential) {
-		// TODO Auto-generated method stub
+    @Override
+    public void setConfidential(boolean confidential) {
+        // TODO Auto-generated method stub
 
-	}
+    }
 
-	@Override
-	public void setIntegrityProtected(boolean arg0) {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void setIntegrityProtected(boolean arg0) {
+        // TODO Auto-generated method stub
+    }
 }
