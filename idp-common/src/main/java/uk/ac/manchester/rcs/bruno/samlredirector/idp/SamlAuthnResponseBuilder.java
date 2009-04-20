@@ -225,8 +225,7 @@ public class SamlAuthnResponseBuilder {
                 }
 
                 signature.setSigningCredential(signingCredential);
-                assertion.setSignature(signature);
-                assertion.setID("1");
+                response.setSignature(signature);
 
                 Configuration.getMarshallerFactory().getMarshaller(response).marshall(response);
                 Signer.signObject(signature);

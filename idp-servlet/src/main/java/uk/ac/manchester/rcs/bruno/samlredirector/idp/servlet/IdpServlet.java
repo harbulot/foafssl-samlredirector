@@ -268,11 +268,12 @@ public class IdpServlet extends HttpServlet {
                 Response samlResponse = SamlAuthnResponseBuilder.getInstance()
                         .buildSubjectAuthenticatedAssertion(URI.create(issuerName),
                                 Collections.singletonList(URI.create(consumerServiceUrl)), webId,
-                                signingCredential, keyname);
+                                null, keyname);
 
                 msgContext.setOutboundMessageTransport(new HttpServletResponseAdapter(response,
                         false));
                 msgContext.setOutboundSAMLMessage(samlResponse);
+                msgContext.setOutboundSAMLMessageSigningCredential(signingCredential);
 
                 HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
                     @SuppressWarnings("unchecked")

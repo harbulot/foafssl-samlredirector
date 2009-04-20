@@ -124,13 +124,41 @@ public class SamlAuthnResponseBuilderTest {
             throws Throwable {
         DateTime dateTime = new DateTime(500000);
 
-        Response samlResponse = SamlAuthnResponseBuilder.getInstance()
+        final Response samlResponse = SamlAuthnResponseBuilder.getInstance()
                 .buildSubjectAuthenticatedAssertion(URI.create(TEST_IDP_URI),
                         Collections.singletonList(URI.create(TEST_SP_URI)),
                         URI.create(TEST_ID_URI), signingCredential, dateTime);
 
         assertNotNull(samlResponse);
 
+        /*
+         * Verifies the signature.
+         */
+        assertNotNull("Signed response? ", samlResponse.getSignature());
+        Thread th = new Thread() {
+            public void run() {
+                try {
+                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
+                    signatureProfileValidator.validate(samlResponse.getSignature());
+
+                    SignatureValidator signatureValidator = new SignatureValidator(
+                            verifyingCredential);
+                    Signature signature = samlResponse.getSignature();
+                    signatureValidator.validate(signature);
+                } catch (ValidationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        UncaughtExceptionHandlerImpl exHandler = new UncaughtExceptionHandlerImpl();
+        th.setUncaughtExceptionHandler(exHandler);
+        th.start();
+        th.join();
+        if (exHandler.getThrowable() != null) {
+            throw exHandler.getThrowable();
+        }
+        
         /*
          * Tests the response.
          */
@@ -165,31 +193,6 @@ public class SamlAuthnResponseBuilderTest {
         AuthnStatement samlAuthnStatement = samlAssertion.getAuthnStatements().get(0);
         DateTime authnTime = samlAuthnStatement.getAuthnInstant();
         assertTrue(authnTime.compareTo(dateTime) == 0);
-        assertNotNull("Signed assertion? ", samlAssertion.getSignature());
-
-        Thread th = new Thread() {
-            public void run() {
-                try {
-                    SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-                    signatureProfileValidator.validate(samlAssertion.getSignature());
-
-                    SignatureValidator signatureValidator = new SignatureValidator(
-                            verifyingCredential);
-                    Signature signature = samlAssertion.getSignature();
-                    signatureValidator.validate(signature);
-                } catch (ValidationException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
-                }
-            }
-        };
-        UncaughtExceptionHandlerImpl exHandler = new UncaughtExceptionHandlerImpl();
-        th.setUncaughtExceptionHandler(exHandler);
-        th.start();
-        th.join();
-        if (exHandler.getThrowable() != null) {
-            throw exHandler.getThrowable();
-        }
     }
 
     public static class UncaughtExceptionHandlerImpl implements UncaughtExceptionHandler {

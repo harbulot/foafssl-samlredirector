@@ -41,11 +41,13 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
 import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -85,17 +87,17 @@ import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.metadata.AuthnQueryService;
 import org.opensaml.saml2.metadata.impl.AuthnQueryServiceImpl;
-import org.opensaml.security.SAMLSignatureProfileValidator;
 import org.opensaml.ws.message.decoder.MessageDecodingException;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallerFactory;
-import org.opensaml.xml.security.credential.BasicCredential;
-import org.opensaml.xml.signature.SignatureValidator;
+import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.w3c.dom.Element;
+
+import com.noelios.restlet.util.Base64;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletRequestInTransportAdapter;
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletResponseOutTransportAdapter;
@@ -318,6 +320,31 @@ public class IdpServletTest {
         restletRequest.setMethod(Method.GET);
 
         /*
+         * Tries to verify the signature, if present.
+         */
+        Form query2 = restletRequest.getResourceRef().getQueryAsForm();
+        String signatureParam = query2.getFirstValue("Signature");
+
+        assertNotNull("Signature?", signatureParam);
+
+        if (signatureParam != null) {
+            String samlResponseParam = query2.getFirstValue("SAMLResponse");
+            String relayStateParam = query2.getFirstValue("RelayState");
+            String sigAlgParam = query2.getFirstValue("SigAlg");
+            String signedMessage = "SAMLResponse=" + URLEncoder.encode(samlResponseParam, "UTF-8");
+            if (relayStateParam != null) {
+                signedMessage += "&RelayState=" + URLEncoder.encode(relayStateParam, "UTF-8");
+            }
+            signedMessage += "&SigAlg=" + URLEncoder.encode(sigAlgParam, "UTF-8");
+
+            byte[] signatureBytes = Base64.decode(signatureParam);
+            Signature signature = Signature.getInstance("SHA1withRSA");
+            signature.initVerify(getPublicKey());
+            signature.update(signedMessage.getBytes());
+            assertTrue("Signature verified?", signature.verify(signatureBytes));
+        }
+
+        /*
          * Uses a dumy Restlet-based transport for ease of request processing.
          */
         RestletRequestInTransportAdapter inTransport = new RestletRequestInTransportAdapter(
@@ -383,16 +410,6 @@ public class IdpServletTest {
         DateTime authnTime = samlAuthnStatement.getAuthnInstant();
         assertTrue("Time correct (1)? ", authnTime.isBeforeNow());
         assertTrue("Time correct (2)? ", authnTime.isAfter(authnTime.minusMillis(100).getMillis()));
-        assertNotNull("Signed assertion? ", samlAssertion.getSignature());
-
-        SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-        signatureProfileValidator.validate(samlAssertion.getSignature());
-
-        BasicCredential verifCredential = new BasicCredential();
-        verifCredential.setPublicKey(getPublicKey());
-        SignatureValidator signatureValidator = new SignatureValidator(verifCredential);
-        signatureValidator.validate(samlAssertion.getSignature());
-
     }
 
     @After

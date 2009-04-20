@@ -34,7 +34,12 @@ package uk.ac.manchester.rcs.bruno.samlredirector.sp.servlet;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -57,15 +62,12 @@ import org.opensaml.saml2.core.AudienceRestriction;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.saml2.core.Response;
-import org.opensaml.security.SAMLSignatureProfileValidator;
 import org.opensaml.ws.message.decoder.MessageDecodingException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
 import org.opensaml.ws.transport.http.HttpServletResponseAdapter;
 import org.opensaml.xml.security.SecurityException;
-import org.opensaml.xml.security.credential.BasicCredential;
-import org.opensaml.xml.signature.SignatureValidator;
-import org.opensaml.xml.validation.ValidationException;
+import org.opensaml.xml.util.Base64;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.sp.SamlAuthnRequestBuilder;
 
@@ -162,15 +164,28 @@ public class SpServlet extends HttpServlet {
                 /*
                  * Verify the signature with the (only) known public key.
                  */
-                SAMLSignatureProfileValidator signatureProfileValidator = new SAMLSignatureProfileValidator();
-                signatureProfileValidator.validate(samlAssertion.getSignature());
-
-                BasicCredential verifCredential = new BasicCredential();
-                synchronized (this) {
-                    verifCredential.setPublicKey(this.idpPublicKey);
+                String signatureParam = request.getParameter("Signature");
+                String relayStateParam = request.getParameter("RelayState");
+                String sigAlgParam = request.getParameter("SigAlg");
+                String signedMessage = "SAMLResponse="
+                        + URLEncoder.encode(samlResponseParam, "UTF-8");
+                if (relayStateParam != null) {
+                    signedMessage += "&RelayState=" + URLEncoder.encode(relayStateParam, "UTF-8");
                 }
-                SignatureValidator signatureValidator = new SignatureValidator(verifCredential);
-                signatureValidator.validate(samlAssertion.getSignature());
+                signedMessage += "&SigAlg=" + URLEncoder.encode(sigAlgParam, "UTF-8");
+
+                byte[] signatureBytes = Base64.decode(signatureParam);
+                // TODO: other algorithm, here assuming SigAlg is rsa-sha1
+                Signature signature = Signature.getInstance("SHA1withRSA");
+                PublicKey idpPubKey = null;
+                synchronized (this) {
+                    idpPubKey = this.idpPublicKey;
+                }
+                signature.initVerify(idpPubKey);
+                signature.update(signedMessage.getBytes());
+                if (!signature.verify(signatureBytes)) {
+                    return;
+                }
 
                 /*
                  * Checks the content of the assertion: audience, subject, time
@@ -224,7 +239,11 @@ public class SpServlet extends HttpServlet {
                 return;
             } catch (SecurityException e) {
                 return;
-            } catch (ValidationException e) {
+            } catch (InvalidKeyException e) {
+                return;
+            } catch (NoSuchAlgorithmException e) {
+                return;
+            } catch (SignatureException e) {
                 return;
             }
 
