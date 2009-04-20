@@ -37,10 +37,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -56,6 +59,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.crypto.dsig.SignatureMethod;
 
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLObject;
@@ -75,6 +79,9 @@ import org.opensaml.xml.XMLObjectBuilderFactory;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
 import org.opensaml.xml.security.credential.Credential;
+import org.restlet.data.Reference;
+
+import com.noelios.restlet.util.Base64;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
 
@@ -238,60 +245,110 @@ public class IdpServlet extends HttpServlet {
 
         if ((verifiedWebIDs != null) && (verifiedWebIDs.size() > 0)) {
             String samlRequestParam = request.getParameter("SAMLRequest");
-            if ((samlRequestParam == null) || (samlRequestParam.length() <= 0)) {
-                response.getWriter().print(verifiedWebIDs.iterator().next().getName());
-                return;
-            }
-            /*
-             * Reads the SAML request and generates the SAML response.
-             */
-            BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
-            msgContext.setInboundMessageTransport(new HttpServletRequestAdapter(request));
+            String simpleRequestParam = request.getParameter("FoafSslAuthnReqIssuer");
 
-            HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
+            if ((samlRequestParam != null) && (samlRequestParam.length() > 0)) {
+                /*
+                 * Reads the SAML request and generates the SAML response.
+                 */
+                BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject> msgContext = new BasicSAMLMessageContext<AuthnRequest, Response, SAMLObject>();
+                msgContext.setInboundMessageTransport(new HttpServletRequestAdapter(request));
 
-            try {
-                decoder.decode(msgContext);
-                AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
-                final String consumerServiceUrl = authnRequest.getAssertionConsumerServiceURL();
+                HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
 
-                URI webId = verifiedWebIDs.iterator().next().getUri();
+                try {
+                    decoder.decode(msgContext);
+                    AuthnRequest authnRequest = msgContext.getInboundSAMLMessage();
+                    final String consumerServiceUrl = authnRequest.getAssertionConsumerServiceURL();
+
+                    URI webId = verifiedWebIDs.iterator().next().getUri();
+
+                    Credential signingCredential = null;
+                    String issuerName = null;
+                    String keyname = null;
+                    synchronized (this) {
+                        signingCredential = this.signingCredential;
+                        issuerName = this.issuerName;
+                        keyname = this.keyName;
+                    }
+                    Response samlResponse = SamlAuthnResponseBuilder.getInstance()
+                            .buildSubjectAuthenticatedAssertion(URI.create(issuerName),
+                                    Collections.singletonList(URI.create(consumerServiceUrl)),
+                                    webId, null, keyname);
+
+                    msgContext.setOutboundMessageTransport(new HttpServletResponseAdapter(response,
+                            false));
+                    msgContext.setOutboundSAMLMessage(samlResponse);
+                    msgContext.setOutboundSAMLMessageSigningCredential(signingCredential);
+
+                    HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
+                        @SuppressWarnings("unchecked")
+                        @Override
+                        protected String getEndpointURL(SAMLMessageContext messageContext)
+                                throws MessageEncodingException {
+                            return consumerServiceUrl;
+                        }
+                    };
+                    httpEncoder.encode(msgContext);
+                } catch (MessageDecodingException e) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    throw new RuntimeException("Error when decoding the request.", e);
+                } catch (SecurityException e) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    throw new RuntimeException("Error when decoding the request.", e);
+                } catch (MessageEncodingException e) {
+                    throw new RuntimeException("Error when encoding the response.", e);
+                }
+
+            } else if ((simpleRequestParam != null) && (simpleRequestParam.length() > 0)) {
+                /*
+                 * Reads the FoafSsl simple auth request.
+                 */
+                Reference authnRespResourceRef = new Reference(simpleRequestParam);
 
                 Credential signingCredential = null;
-                String issuerName = null;
-                String keyname = null;
                 synchronized (this) {
                     signingCredential = this.signingCredential;
-                    issuerName = this.issuerName;
-                    keyname = this.keyName;
                 }
-                Response samlResponse = SamlAuthnResponseBuilder.getInstance()
-                        .buildSubjectAuthenticatedAssertion(URI.create(issuerName),
-                                Collections.singletonList(URI.create(consumerServiceUrl)), webId,
-                                null, keyname);
 
-                msgContext.setOutboundMessageTransport(new HttpServletResponseAdapter(response,
-                        false));
-                msgContext.setOutboundSAMLMessage(samlResponse);
-                msgContext.setOutboundSAMLMessageSigningCredential(signingCredential);
+                PrivateKey privKey = signingCredential.getPrivateKey();
+                String sigAlg = null;
+                String sigAlgUri = null;
+                if ("RSA".equals(privKey.getAlgorithm())) {
+                    sigAlg = "SHA1withRSA";
+                    sigAlgUri = SignatureMethod.RSA_SHA1;
+                } else if ("DSA".equals(privKey.getAlgorithm())) {
+                    sigAlg = "SHA1withDSA";
+                    sigAlgUri = SignatureMethod.DSA_SHA1;
+                } else {
+                    return;
+                }
 
-                HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder() {
-                    @SuppressWarnings("unchecked")
-                    @Override
-                    protected String getEndpointURL(SAMLMessageContext messageContext)
-                            throws MessageEncodingException {
-                        return consumerServiceUrl;
-                    }
-                };
-                httpEncoder.encode(msgContext);
-            } catch (MessageDecodingException e) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                throw new RuntimeException("Error when decoding the request.", e);
-            } catch (SecurityException e) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                throw new RuntimeException("Error when decoding the request.", e);
-            } catch (MessageEncodingException e) {
-                throw new RuntimeException("Error when encoding the response.", e);
+                URI webId = verifiedWebIDs.iterator().next().getUri();
+                authnRespResourceRef.addQueryParameter("FoafSslAuthnUri", webId.toASCIIString());
+                authnRespResourceRef.addQueryParameter("SigAlg", sigAlgUri);
+
+                String signedMessage = authnRespResourceRef.toString();
+                try {
+                    Signature signature = Signature.getInstance(sigAlg);
+                    signature.initSign(privKey);
+                    signature.update(signedMessage.getBytes());
+                    byte[] signatureBytes = signature.sign();
+                    authnRespResourceRef.addQueryParameter("Signature", Base64.encode(
+                            signatureBytes, false));
+                } catch (InvalidKeyException e) {
+                    return;
+                } catch (NoSuchAlgorithmException e) {
+                    return;
+                } catch (SignatureException e) {
+                    return;
+                }
+
+                response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+                response.setHeader("Location", authnRespResourceRef.toString());
+            } else {
+                response.getWriter().print(verifiedWebIDs.iterator().next().getName());
+                return;
             }
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

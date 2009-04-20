@@ -83,7 +83,6 @@
 		<dependency>
 			<groupId>org.restlet</groupId>
 			<artifactId>org.restlet</artifactId>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.noelios.restlet</groupId>

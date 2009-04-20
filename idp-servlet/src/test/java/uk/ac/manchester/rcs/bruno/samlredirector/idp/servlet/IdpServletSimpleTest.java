@@ -38,10 +38,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.URLEncoder;
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
 import java.security.KeyStore;
@@ -62,51 +60,24 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.xml.crypto.dsig.SignatureMethod;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMReader;
-import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mortbay.jetty.servlet.ServletHolder;
 import org.mortbay.jetty.testing.HttpTester;
 import org.mortbay.jetty.testing.ServletTester;
-import org.opensaml.common.SAMLObject;
-import org.opensaml.common.binding.BasicSAMLMessageContext;
-import org.opensaml.common.binding.SAMLMessageContext;
-import org.opensaml.saml2.binding.decoding.HTTPRedirectDeflateDecoder;
-import org.opensaml.saml2.binding.encoding.HTTPRedirectDeflateEncoder;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.metadata.AuthnQueryService;
-import org.opensaml.saml2.metadata.impl.AuthnQueryServiceImpl;
-import org.opensaml.ws.message.decoder.MessageDecodingException;
-import org.opensaml.xml.Configuration;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.io.MarshallerFactory;
 import org.opensaml.xml.util.Base64;
 import org.restlet.data.Form;
-import org.restlet.data.Method;
+import org.restlet.data.Parameter;
 import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.w3c.dom.Element;
-
-import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletRequestInTransportAdapter;
-import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletResponseOutTransportAdapter;
-import uk.ac.manchester.rcs.bruno.samlredirector.sp.SamlAuthnRequestBuilder;
 
 /**
  * @author Bruno Harbulot (Bruno.Harbulot@manchester.ac.uk)
  */
-public class IdpServletTest {
+public class IdpServletSimpleTest {
     public final static String CERTIFICATES_DIRECTORY = "org/jsslutils/certificates/";
     public final static String KEYSTORE_PASSWORD_STRING = "testtest";
     public final static char[] KEYSTORE_PASSWORD = KEYSTORE_PASSWORD_STRING.toCharArray();
@@ -221,7 +192,7 @@ public class IdpServletTest {
 
                                 @Override
                                 public InputStream getInputStream() throws IOException {
-                                    return IdpServletTest.class
+                                    return IdpServletSimpleTest.class
                                             .getResourceAsStream(TEST_BRUNO_FOAF_FILENAME);
                                 }
                             };
@@ -251,57 +222,21 @@ public class IdpServletTest {
     @Test
     public void testRequest() throws Exception {
         /*
-         * Creates a SAML message context for the fake authn request.
+         * Creates a fake simple authn request.
          */
-        BasicSAMLMessageContext<SAMLObject, AuthnRequest, SAMLObject> fakeAuthnReqOutMsgContext = new BasicSAMLMessageContext<SAMLObject, AuthnRequest, SAMLObject>();
-
-        /*
-         * TheSAML authn request is sent via anHTTP response which is a
-         * redirection and will thus trigger a newHTTP request to the URL in the
-         * Location header.
-         * 
-         * Using a Restlet Response object to fake the serialisation makes it a
-         * bit easier to parse that redirection. There is no actual Restlet
-         * connection involved here.
-         */
-        org.restlet.data.Response fakeHttpResponse = new org.restlet.data.Response(new Request());
-        RestletResponseOutTransportAdapter fakeAuthnReqOutTransport = new RestletResponseOutTransportAdapter(
-                fakeHttpResponse);
-        AuthnRequest authnRequest = SamlAuthnRequestBuilder.getInstance().buildAuthnRequest(
-                URI.create(TEST_SP_URI));
-        assertNotNull(authnRequest);
-        assertEquals(TEST_SP_URI, authnRequest.getIssuer().getValue());
-        fakeAuthnReqOutMsgContext.setOutboundSAMLMessage(authnRequest);
-        fakeAuthnReqOutMsgContext.setOutboundMessageTransport(fakeAuthnReqOutTransport);
-        fakeAuthnReqOutMsgContext.setPeerEntityEndpoint(new AuthnQueryServiceImpl(
-                AuthnQueryService.DEFAULT_ELEMENT_NAME.getNamespaceURI(),
-                AuthnQueryService.DEFAULT_ELEMENT_NAME.getLocalPart(),
-                AuthnQueryService.DEFAULT_ELEMENT_NAME.getPrefix()) {
-            @Override
-            public String getLocation() {
-                return TEST_IDP_URI;
-            }
-        });
-
-        /*
-         * Encodes the SAML request with the Deflate encoder, which will put the
-         * encoded value in the Location header of the fakeHttpResponse passed
-         * in the fakeAuthnReqOutMsgContext.
-         */
-        HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder();
-        httpEncoder.encode(fakeAuthnReqOutMsgContext);
+        Reference authnReqResourceRef = new Reference(TEST_IDP_URI);
+        authnReqResourceRef.addQueryParameter("FoafSslAuthnReqIssuer", TEST_SP_URI);
 
         /*
          * Sets up the request in the Jetty tester. The URL to which to send the
-         * SAML authn request is in the Location header of the fakeHttpResponse.
+         * simple authn request is modelled by authnReqResourceRef.
          */
         HttpTester request = new HttpTester();
         HttpTester response = new HttpTester();
-        Reference resourceRef = fakeHttpResponse.getLocationRef();
-        request.setHeader("Host", resourceRef.getHostDomain());
+        request.setHeader("Host", authnReqResourceRef.getHostDomain());
         request.setMethod("GET");
-        String authReqUrlQueryPart = resourceRef.getQuery();
-        request.setURI(resourceRef.getPath()
+        String authReqUrlQueryPart = authnReqResourceRef.getQuery();
+        request.setURI(authnReqResourceRef.getPath()
                 + (authReqUrlQueryPart != null ? "?" + authReqUrlQueryPart : ""));
 
         /*
@@ -314,7 +249,7 @@ public class IdpServletTest {
          */
         response.parse(idpServletTester.getResponses(request.generate()));
 
-        System.out.println();
+        System.out.println("Request URI: " + authnReqResourceRef.toString());
         System.out.println("Response status: " + response.getStatus());
         String location = response.getHeader("Location");
         System.out.println("Response Location header: " + location);
@@ -322,112 +257,43 @@ public class IdpServletTest {
         System.out.println();
 
         /*
-         * Creates a SAML message context to process the response.
+         * Process the response.
          */
-        BasicSAMLMessageContext<Response, SAMLObject, SAMLObject> authnResponseInMsgContext = new BasicSAMLMessageContext<Response, SAMLObject, SAMLObject>();
-        Request restletRequest = new Request();
-        restletRequest.setResourceRef(location);
-        restletRequest.setMethod(Method.GET);
+        Reference authnRespResourceRef = new Reference(location);
+        Form authnRespResourceRefQueryForm = authnRespResourceRef.getQueryAsForm();
 
         /*
          * Tries to verify the signature, if present.
          */
-        Form samlResponseUrlQueryPart = restletRequest.getResourceRef().getQueryAsForm();
-        String signatureParam = samlResponseUrlQueryPart.getFirstValue("Signature");
+        String authUriParam = authnRespResourceRefQueryForm.getFirstValue("FoafSslAuthnUri");
+        String sigAlgParam = authnRespResourceRefQueryForm.getFirstValue("SigAlg");
+        Parameter signatureParam = authnRespResourceRefQueryForm.getFirst("Signature");
 
         assertNotNull("Signature?", signatureParam);
 
-        if (signatureParam != null) {
-            String samlResponseParam = samlResponseUrlQueryPart.getFirstValue("SAMLResponse");
-            String relayStateParam = samlResponseUrlQueryPart.getFirstValue("RelayState");
-            String sigAlgParam = samlResponseUrlQueryPart.getFirstValue("SigAlg");
-            String signedMessage = "SAMLResponse=" + URLEncoder.encode(samlResponseParam, "UTF-8");
-            if (relayStateParam != null) {
-                signedMessage += "&RelayState=" + URLEncoder.encode(relayStateParam, "UTF-8");
-            }
-            signedMessage += "&SigAlg=" + URLEncoder.encode(sigAlgParam, "UTF-8");
+        authnRespResourceRefQueryForm.remove(signatureParam);
 
-            byte[] signatureBytes = Base64.decode(signatureParam);
-            String sigAlg = null;
-            if (SignatureMethod.DSA_SHA1.equals(sigAlgParam)) {
-                sigAlg = "SHA1withDSA";
-            } else if (SignatureMethod.RSA_SHA1.equals(sigAlgParam)) {
-                sigAlg = "SHA1withRSA";
-            } else {
-                fail("Unsupported signature algorithm.");
-            }
-            Signature signature = Signature.getInstance(sigAlg);
-            signature.initVerify(getPublicKey());
-            signature.update(signedMessage.getBytes());
-            assertTrue("Signature verified?", signature.verify(signatureBytes));
+        authnRespResourceRef.setQuery(null);
+        for (Parameter param : authnRespResourceRefQueryForm) {
+            authnRespResourceRef.addQueryParameter(param.getName(), param.getValue());
         }
+        String signedMessage = authnRespResourceRef.toString();
 
-        /*
-         * Uses a dumy Restlet-based transport for ease of request processing.
-         */
-        RestletRequestInTransportAdapter inTransport = new RestletRequestInTransportAdapter(
-                restletRequest);
-        authnResponseInMsgContext.setInboundMessageTransport(inTransport);
+        byte[] signatureBytes = Base64.decode(signatureParam.getValue());
+        String sigAlg = null;
+        if (SignatureMethod.DSA_SHA1.equals(sigAlgParam)) {
+            sigAlg = "SHA1withDSA";
+        } else if (SignatureMethod.RSA_SHA1.equals(sigAlgParam)) {
+            sigAlg = "SHA1withRSA";
+        } else {
+            fail("Unsupported signature algorithm.");
+        }
+        Signature signature = Signature.getInstance(sigAlg);
+        signature.initVerify(getPublicKey());
+        signature.update(signedMessage.getBytes());
+        assertTrue("Signature verified?", signature.verify(signatureBytes));
 
-        HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder() {
-            @SuppressWarnings("unchecked")
-            @Override
-            protected void checkEndpointURI(SAMLMessageContext messageContext)
-                    throws SecurityException, MessageDecodingException {
-                // boolean destRequired =
-                // isIntendedDestinationEndpointURIRequired(messageContext);
-                // System.err.println("Binding requires destination endpoint? "
-                // + destRequired);
-                // System.err.println("Destination Endpoint: "
-                // + getIntendedDestinationEndpointURI(messageContext));
-            }
-        };
-        decoder.decode(authnResponseInMsgContext);
-
-        Response samlResponse = authnResponseInMsgContext.getInboundSAMLMessage();
-        assertNotNull(samlResponse);
-
-        /*
-         * Tests the response.
-         */
-        assertNotNull(samlResponse.getAssertions());
-        assertEquals(1, samlResponse.getAssertions().size());
-        Assertion samlAssertion = samlResponse.getAssertions().get(0);
-        assertNotNull(samlAssertion);
-
-        /*
-         * Marshal the response for display.
-         */
-        MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
-        Marshaller marshaller = marshallerFactory.getMarshaller(samlResponse);
-        Element responseElement = marshaller.marshall(samlResponse);
-
-        /*
-         * Displays the XML result.
-         */
-        System.out.println();
-        TransformerFactory tFactory = TransformerFactory.newInstance();
-        Transformer t = tFactory.newTransformer();
-        Source xmlSource = new DOMSource(responseElement);
-        StreamResult streamResult = new StreamResult(System.out);
-        t.transform(xmlSource, streamResult);
-        System.out.println();
-        System.out.println();
-
-        /*
-         * Carry on testing the assertion.
-         */
-        assertNotNull(samlAssertion.getSubject());
-        assertNotNull(samlAssertion.getSubject().getNameID());
-        // assertEquals("... some format ...", responseAssertion.getSubject()
-        // .getNameID().getFormat());
-        assertEquals(TEST_BRUNO_FOAF_ID, samlAssertion.getSubject().getNameID().getValue());
-        assertNotNull(samlAssertion.getAuthnStatements());
-        assertEquals(1, samlAssertion.getAuthnStatements().size());
-        AuthnStatement samlAuthnStatement = samlAssertion.getAuthnStatements().get(0);
-        DateTime authnTime = samlAuthnStatement.getAuthnInstant();
-        assertTrue("Time correct (1)? ", authnTime.isBeforeNow());
-        assertTrue("Time correct (2)? ", authnTime.isAfter(authnTime.minusMillis(100).getMillis()));
+        assertEquals("ID verified?", TEST_BRUNO_FOAF_ID, authUriParam);
     }
 
     @After
@@ -466,7 +332,7 @@ public class IdpServletTest {
         @Override
         public void init(FilterConfig config) throws ServletException {
             try {
-                InputStreamReader certReader = new InputStreamReader(IdpServletTest.class
+                InputStreamReader certReader = new InputStreamReader(IdpServletSimpleTest.class
                         .getResourceAsStream(TEST_BRUNO_CERT_FILENAME));
 
                 PEMReader pemReader = new PEMReader(certReader);
