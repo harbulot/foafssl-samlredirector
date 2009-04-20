@@ -49,6 +49,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.crypto.dsig.SignatureMethod;
 
 import org.joda.time.DateTime;
 import org.opensaml.common.SAMLObject;
@@ -175,8 +176,15 @@ public class SpServlet extends HttpServlet {
                 signedMessage += "&SigAlg=" + URLEncoder.encode(sigAlgParam, "UTF-8");
 
                 byte[] signatureBytes = Base64.decode(signatureParam);
-                // TODO: other algorithm, here assuming SigAlg is rsa-sha1
-                Signature signature = Signature.getInstance("SHA1withRSA");
+                String sigAlg = null;
+                if (SignatureMethod.DSA_SHA1.equals(sigAlgParam)) {
+                    sigAlg = "SHA1withDSA";
+                } else if (SignatureMethod.RSA_SHA1.equals(sigAlgParam)) {
+                    sigAlg = "SHA1withRSA";
+                } else {
+                    return;
+                }
+                Signature signature = Signature.getInstance(sigAlg);
                 PublicKey idpPubKey = null;
                 synchronized (this) {
                     idpPubKey = this.idpPublicKey;

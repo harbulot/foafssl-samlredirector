@@ -61,6 +61,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.xml.crypto.dsig.SignatureMethod;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -91,13 +92,12 @@ import org.opensaml.ws.message.decoder.MessageDecodingException;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.io.Marshaller;
 import org.opensaml.xml.io.MarshallerFactory;
+import org.opensaml.xml.util.Base64;
 import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.w3c.dom.Element;
-
-import com.noelios.restlet.util.Base64;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletRequestInTransportAdapter;
 import uk.ac.manchester.rcs.bruno.samlredirector.misc.RestletResponseOutTransportAdapter;
@@ -256,17 +256,23 @@ public class IdpServletTest {
         BasicSAMLMessageContext<SAMLObject, AuthnRequest, SAMLObject> fakeAuthnReqOutMsgContext = new BasicSAMLMessageContext<SAMLObject, AuthnRequest, SAMLObject>();
 
         /*
-         * Uses a dumy Restlet-based transport for ease of request processing.
+         * TheSAML authn request is sent via anHTTP response which is a
+         * redirection and will thus trigger a newHTTP request to the URL in the
+         * Location header.
+         * 
+         * Using a Restlet Response object to fake the serialisation makes it a
+         * bit easier to parse that redirection. There is no actual Restlet
+         * connection involved here.
          */
-        org.restlet.data.Response fakeRestletResponse = new org.restlet.data.Response(new Request());
-        RestletResponseOutTransportAdapter outTransport = new RestletResponseOutTransportAdapter(
-                fakeRestletResponse);
+        org.restlet.data.Response fakeHttpResponse = new org.restlet.data.Response(new Request());
+        RestletResponseOutTransportAdapter fakeAuthnReqOutTransport = new RestletResponseOutTransportAdapter(
+                fakeHttpResponse);
         AuthnRequest authnRequest = SamlAuthnRequestBuilder.getInstance().buildAuthnRequest(
                 URI.create(TEST_SP_URI));
         assertNotNull(authnRequest);
         assertEquals(TEST_SP_URI, authnRequest.getIssuer().getValue());
         fakeAuthnReqOutMsgContext.setOutboundSAMLMessage(authnRequest);
-        fakeAuthnReqOutMsgContext.setOutboundMessageTransport(outTransport);
+        fakeAuthnReqOutMsgContext.setOutboundMessageTransport(fakeAuthnReqOutTransport);
         fakeAuthnReqOutMsgContext.setPeerEntityEndpoint(new AuthnQueryServiceImpl(
                 AuthnQueryService.DEFAULT_ELEMENT_NAME.getNamespaceURI(),
                 AuthnQueryService.DEFAULT_ELEMENT_NAME.getLocalPart(),
@@ -278,21 +284,25 @@ public class IdpServletTest {
         });
 
         /*
-         * Encodes the request with the DEFLATE encoder.
+         * Encodes the SAML request with the Deflate encoder, which will put the
+         * encoded value in the Location header of the fakeHttpResponse passed
+         * in the fakeAuthnReqOutMsgContext.
          */
         HTTPRedirectDeflateEncoder httpEncoder = new HTTPRedirectDeflateEncoder();
         httpEncoder.encode(fakeAuthnReqOutMsgContext);
 
         /*
-         * Sets up the request in the Jetty tester.
+         * Sets up the request in the Jetty tester. The URL to which to send the
+         * SAML authn request is in the Location header of the fakeHttpResponse.
          */
         HttpTester request = new HttpTester();
         HttpTester response = new HttpTester();
-        Reference resourceRef = fakeRestletResponse.getLocationRef();
+        Reference resourceRef = fakeHttpResponse.getLocationRef();
         request.setHeader("Host", resourceRef.getHostDomain());
         request.setMethod("GET");
-        String query = resourceRef.getQuery();
-        request.setURI(resourceRef.getPath() + (query != null ? "?" + query : ""));
+        String authReqUrlQueryPart = resourceRef.getQuery();
+        request.setURI(resourceRef.getPath()
+                + (authReqUrlQueryPart != null ? "?" + authReqUrlQueryPart : ""));
 
         /*
          * Fakes the presence of a client certificate.
@@ -322,15 +332,15 @@ public class IdpServletTest {
         /*
          * Tries to verify the signature, if present.
          */
-        Form query2 = restletRequest.getResourceRef().getQueryAsForm();
-        String signatureParam = query2.getFirstValue("Signature");
+        Form samlResponseUrlQueryPart = restletRequest.getResourceRef().getQueryAsForm();
+        String signatureParam = samlResponseUrlQueryPart.getFirstValue("Signature");
 
         assertNotNull("Signature?", signatureParam);
 
         if (signatureParam != null) {
-            String samlResponseParam = query2.getFirstValue("SAMLResponse");
-            String relayStateParam = query2.getFirstValue("RelayState");
-            String sigAlgParam = query2.getFirstValue("SigAlg");
+            String samlResponseParam = samlResponseUrlQueryPart.getFirstValue("SAMLResponse");
+            String relayStateParam = samlResponseUrlQueryPart.getFirstValue("RelayState");
+            String sigAlgParam = samlResponseUrlQueryPart.getFirstValue("SigAlg");
             String signedMessage = "SAMLResponse=" + URLEncoder.encode(samlResponseParam, "UTF-8");
             if (relayStateParam != null) {
                 signedMessage += "&RelayState=" + URLEncoder.encode(relayStateParam, "UTF-8");
@@ -338,7 +348,15 @@ public class IdpServletTest {
             signedMessage += "&SigAlg=" + URLEncoder.encode(sigAlgParam, "UTF-8");
 
             byte[] signatureBytes = Base64.decode(signatureParam);
-            Signature signature = Signature.getInstance("SHA1withRSA");
+            String sigAlg = null;
+            if (SignatureMethod.DSA_SHA1.equals(sigAlgParam)) {
+                sigAlg = "SHA1withDSA";
+            } else if (SignatureMethod.RSA_SHA1.equals(sigAlgParam)) {
+                sigAlg = "SHA1withRSA";
+            } else {
+                fail("Unsupported signature algorithm.");
+            }
+            Signature signature = Signature.getInstance(sigAlg);
             signature.initVerify(getPublicKey());
             signature.update(signedMessage.getBytes());
             assertTrue("Signature verified?", signature.verify(signatureBytes));
