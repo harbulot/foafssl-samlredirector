@@ -47,6 +47,8 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -265,7 +267,9 @@ public class IdpServletSimpleTest {
         /*
          * Tries to verify the signature, if present.
          */
-        String authUriParam = authnRespResourceRefQueryForm.getFirstValue("FoafSslAuthnUri");
+        String authnUriParam = authnRespResourceRefQueryForm.getFirstValue("FoafSslAuthnUri");
+        String authnDateTimeParam = authnRespResourceRefQueryForm
+                .getFirstValue("FoafSslAuthnDateTime");
         String sigAlgParam = authnRespResourceRefQueryForm.getFirstValue("SigAlg");
         Parameter signatureParam = authnRespResourceRefQueryForm.getFirst("Signature");
 
@@ -278,6 +282,7 @@ public class IdpServletSimpleTest {
             authnRespResourceRef.addQueryParameter(param.getName(), param.getValue());
         }
         String signedMessage = authnRespResourceRef.toString();
+        System.out.println("SignedMessage: " + signedMessage);
 
         byte[] signatureBytes = Base64.decode(signatureParam.getValue());
         String sigAlg = null;
@@ -293,7 +298,13 @@ public class IdpServletSimpleTest {
         signature.update(signedMessage.getBytes());
         assertTrue("Signature verified?", signature.verify(signatureBytes));
 
-        assertEquals("ID verified?", TEST_BRUNO_FOAF_ID, authUriParam);
+        assertEquals("ID verified?", TEST_BRUNO_FOAF_ID, authnUriParam);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+        Date authnDate = dateFormat.parse(authnDateTimeParam);
+        assertTrue("Authn date in the past?", authnDate.before(new Date()));
+        assertTrue("Authn date no older than 5s?", authnDate.after(new Date(System
+                .currentTimeMillis() - 5000)));
     }
 
     @After

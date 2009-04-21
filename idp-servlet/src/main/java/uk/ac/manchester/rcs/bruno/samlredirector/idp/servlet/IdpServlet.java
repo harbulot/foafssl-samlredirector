@@ -47,6 +47,8 @@ import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -326,13 +328,16 @@ public class IdpServlet extends HttpServlet {
 
                 URI webId = verifiedWebIDs.iterator().next().getUri();
                 authnRespResourceRef.addQueryParameter("FoafSslAuthnUri", webId.toASCIIString());
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+                authnRespResourceRef.addQueryParameter("FoafSslAuthnDateTime", dateFormat
+                        .format(Calendar.getInstance().getTime()));
                 authnRespResourceRef.addQueryParameter("SigAlg", sigAlgUri);
 
                 String signedMessage = authnRespResourceRef.toString();
                 try {
                     Signature signature = Signature.getInstance(sigAlg);
                     signature.initSign(privKey);
-                    signature.update(signedMessage.getBytes());
+                    signature.update(signedMessage.getBytes("UTF-8"));
                     byte[] signatureBytes = signature.sign();
                     authnRespResourceRef.addQueryParameter("Signature", Base64.encode(
                             signatureBytes, false));
