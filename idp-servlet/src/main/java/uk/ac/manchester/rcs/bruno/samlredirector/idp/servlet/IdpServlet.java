@@ -81,9 +81,8 @@ import org.opensaml.xml.XMLObjectBuilderFactory;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.SecurityHelper;
 import org.opensaml.xml.security.credential.Credential;
+import org.opensaml.xml.util.Base64;
 import org.restlet.data.Reference;
-
-import com.noelios.restlet.util.Base64;
 
 import uk.ac.manchester.rcs.bruno.samlredirector.idp.SamlAuthnResponseBuilder;
 
@@ -339,8 +338,8 @@ public class IdpServlet extends HttpServlet {
                     signature.initSign(privKey);
                     signature.update(signedMessage.getBytes("UTF-8"));
                     byte[] signatureBytes = signature.sign();
-                    authnRespResourceRef.addQueryParameter("Signature", Base64.encode(
-                            signatureBytes, false));
+                    authnRespResourceRef.addQueryParameter("Signature", Base64.encodeBytes(
+                            signatureBytes, Base64.DONT_BREAK_LINES));
                 } catch (InvalidKeyException e) {
                     return;
                 } catch (NoSuchAlgorithmException e) {
