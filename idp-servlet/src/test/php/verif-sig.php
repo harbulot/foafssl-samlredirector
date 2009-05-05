@@ -36,6 +36,32 @@ if ($verified == 1) {
 	echo "ERROR: verifying bad reply.\n";
 }
 
+
+
+$_SERVER["HTTPS"] = "off";
+$_SERVER["HTTP_HOST"] = "sp.example.com";
+$_SERVER["SERVER_PORT"] = 80;
+$_SERVER["REQUEST_URI"] = "/sp/?FoafSslAuthnUri=http%3A%2F%2Ffoaf.example.net%2Fbruno%23me&FoafSslAuthnDateTime=2009-04-21T23%3A48%3A57%2B0100&SigAlg=http%3A%2F%2Fwww.w3.org%2F2000%2F09%2Fxmldsig%23rsa-sha1&sig=$url_encoded_signature";
+$_GET["sig"] = urldecode($url_encoded_signature);
+
+$full_uri = ($_SERVER["HTTPS"] == "on" ? "https" : "http")
+. "://" . $_SERVER["HTTP_HOST"]
+. ($_SERVER["SERVER_PORT"] != ($_SERVER["HTTPS"] == "on" ? 443 : 80) ? ":".$_SERVER["SERVER_PORT"] : "")
+. $_SERVER["REQUEST_URI"];
+
+$signed_info = substr($full_uri, 0, -5-strlen(urlencode($_GET["sig"])));
+
+$signature = base64_decode($_GET["sig"]);
+
+$verified = openssl_verify($signed_info, $signature, $pubkeyid);
+if ($verified == 1) {
+	echo "PASS: verifying good reply.\n";
+} elseif ($verified == 0) {
+	echo "FAIL: verifying good reply.\n";
+} else {
+	echo "ERROR: verifying good reply.\n";
+}
+
 openssl_free_key($pubkeyid);
 
 ?>
